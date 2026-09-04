@@ -2,7 +2,7 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState, useCallback } from "react";
-import { Star, Gift, PartyPopper, Loader2 } from "lucide-react";
+import { Star, Gift, PartyPopper, Loader2, Home } from "lucide-react";
 
 export default function CardView() {
   const { batchToken } = useParams<{ batchToken: string }>();
@@ -186,12 +186,21 @@ export default function CardView() {
             <div className="text-center py-2" style={{ display: allBatchDone && !showPrize ? "block" : "none" }}>
               <div className="text-4xl mb-3">✨</div>
               <p className="font-bold text-base mb-1">Lote completo!</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 {displayCyclesCompleted > 0
                   ? `${customer?.name ? customer.name + ", você" : "Você"} já completou ${displayCyclesCompleted} ciclo(s). Aguarde novos links para continuar!`
                   : `${customer?.name ? customer.name + ", você" : "Você"} coletou todos os selos deste link.`
                 }
               </p>
+              {customer?._id && (
+                <a
+                  href={`/customer/${customer._id}`}
+                  className="clay-button px-6 py-3 font-semibold text-sm inline-flex items-center justify-center gap-2"
+                  style={{ background: brandColor, color: "white" }}
+                >
+                  Voltar para minha área
+                </a>
+              )}
             </div>
 
             {error && <p className="text-sm text-red-500 mt-3 text-center">{error}</p>}
@@ -295,6 +304,16 @@ export default function CardView() {
               >
                 {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
               </button>
+
+              {lastReveal.batchPending === 0 && customer?._id && (
+                <a
+                  href={`/customer/${customer._id}`}
+                  className="clay-button px-6 py-2.5 text-sm font-semibold mt-2 w-full inline-flex items-center justify-center gap-2 border-2"
+                  style={{ borderColor: brandColor + "40", color: brandColor }}
+                >
+                  Voltar para minha área
+                </a>
+              )}
             </div>
           </div>
         </div>
