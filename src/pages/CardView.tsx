@@ -273,11 +273,11 @@ function CardPhase({
   const [revealingIndex, setRevealingIndex] = useState<number | null>(null);
   const [lastReveal, setLastReveal] = useState<any>(null);
   const [showPrizeModal, setShowPrizeModal] = useState(false);
-  const [celebrating, setCelebrating] = useState(false);
+  const [sessionRevealed, setSessionRevealed] = useState(false);
 
   const handleReveal = useCallback(
     async (index: number) => {
-      if (revealingIndex !== null || !customerId) return;
+      if (revealingIndex !== null || !customerId || sessionRevealed) return;
       setRevealingIndex(index);
 
       // Short delay for animation
@@ -290,15 +290,12 @@ function CardPhase({
         });
         setLastReveal(result);
         setShowPrizeModal(true);
-
-        if (result.completed) {
-          setCelebrating(true);
-        }
+        setSessionRevealed(true);
       } catch {
         setRevealingIndex(null);
       }
     },
-    [customerId, cardId, revealingIndex],
+    [customerId, cardId, revealingIndex, sessionRevealed],
   );
 
   const totalRevealed = stampData?.totalRevealed ?? 0;
@@ -352,12 +349,34 @@ function CardPhase({
               >
                 {card.cardName}
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Toque nos selos para descobrir seu prêmio!
-              </p>
+              {sessionRevealed ? (
+                <p className="text-xs font-medium mt-1" style={{ color: brandColor }}>
+                  Seu carimbo de hoje foi coletado!
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Toque no selo para descobrir seu prêmio!
+                </p>
+              )}
             </div>
 
-            {/* Stamp grid */}
+            {sessionRevealed ? (
+              /* After reveal: show message + still-visible revealed stamps */
+              <div className="text-center mb-5">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="clay-card p-6"
+                >
+                  <div className="text-4xl mb-3">✨</div>
+                  <p className="font-bold text-base mb-1">Carimbo coletado!</p>
+                  <p className="text-sm text-muted-foreground">
+                    Volte na próxima compra para coletar o próximo selo.
+                  </p>
+                </motion.div>
+              </div>
+            ) : (
+            /* Stamp grid — tappable only before reveal */
             <div className="grid grid-cols-5 gap-3 mb-5">
               {Array.from({ length: totalStamps }).map((_, i) => {
                 const isRevealed = i < totalRevealed;
@@ -365,19 +384,21 @@ function CardPhase({
                 const isRevealing = revealingIndex === i;
 
                 return (
-                  <motion.button
+                  <motion.div
                     key={i}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 + i * 0.04, type: "spring" }}
-                    whileTap={!isRevealed && isCurrent && !completed ? { scale: 0.9 } : {}}
                     onClick={() => {
-                      if (!isRevealed && isCurrent && !completed) {
+                      if (!isRevealed && isCurrent && !completed && !sessionRevealed) {
                         handleReveal(i);
                       }
                     }}
-                    disabled={isRevealed || !isCurrent || completed || isRevealing}
-                    className="relative w-full aspect-square"
+                    className={`relative w-full aspect-square ${
+                      !isRevealed && isCurrent && !completed && !sessionRevealed
+                        ? "cursor-pointer"
+                        : ""
+                    }`}
                   >
                     {/* Unrevealed stamp — always mounted, hidden when revealed */}
                     <div
@@ -429,10 +450,11 @@ function CardPhase({
                     >
                       <Star className="w-4 h-4" />
                     </div>
-                  </motion.button>
+                  </motion.div>
                 );
               })}
             </div>
+            )}
 
             {/* Progress bar */}
             <div className="mb-2">
@@ -625,7 +647,7 @@ function CardPhase({
                       color: "white",
                     }}
                   >
-                    {lastReveal.completed ? "Ver recompensa" : "Continuar"}
+                    {lastReveal.completed ? "Ver recompensa" : "Próxima compra"}
                     <ChevronRight className="w-4 h-4 inline ml-1" />
                   </button>
                 </div>
