@@ -60,7 +60,15 @@ export default function Dashboard() {
     window.location.href = "/";
   };
 
-  if (!business && business !== undefined && !showSetup) {
+  if (business === undefined) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground text-sm">Carregando...</div>
+      </main>
+    );
+  }
+
+  if (!business && !showSetup) {
     return (
       <main className="min-h-screen bg-background px-4 py-8">
         <div className="mx-auto max-w-lg flex flex-col items-center justify-center min-h-[70vh]">
