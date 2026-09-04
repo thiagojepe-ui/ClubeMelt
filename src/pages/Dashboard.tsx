@@ -958,19 +958,64 @@ function StampsView({ businessId }: { businessId: string }) {
         <div className="mt-6">
           <h3 className="text-sm font-bold text-muted-foreground mb-3">Carimbos já gerados</h3>
           <div className="space-y-2">
-            {stampData.map((entry) => (
-              <div key={entry.customer._id} className="clay-card p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: "var(--clay-orange)" }}>{entry.customer.name.charAt(0).toUpperCase()}</div>
-                  <div className="flex-1"><p className="font-semibold text-sm">{entry.customer.name}</p><p className="text-xs text-muted-foreground">{entry.cardName}</p></div>
-                  <div className="text-right"><p className="text-sm font-bold" style={{ color: "var(--clay-orange)" }}>{entry.revealedCount}/{entry.totalStamps}</p><p className="text-[10px] text-muted-foreground">coletados</p></div>
+            {stampData.map((entry) => {
+              const hasCompleted = entry.cyclesCompleted > 0;
+              const progress = entry.totalStamps > 0 ? (entry.currentProgress / entry.totalStamps) * 100 : 0;
+
+              return (
+                <div key={entry.customer._id} className="clay-card p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: "var(--clay-orange)" }}>{entry.customer.name.charAt(0).toUpperCase()}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm truncate">{entry.customer.name}</p>
+                        {hasCompleted && (
+                          <span className="clay-badge px-1.5 py-0.5 text-[9px] font-bold inline-flex items-center gap-0.5" style={{ background: "oklch(0.92 0.08 145)", color: "oklch(0.35 0.12 145)" }}>
+                            🏆 {entry.cyclesCompleted}x
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{entry.cardName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold" style={{ color: "var(--clay-orange)" }}>{entry.currentProgress}/{entry.totalStamps}</p>
+                      <p className="text-[10px] text-muted-foreground">ciclo atual</p>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full h-2 bg-secondary rounded-full overflow-hidden mb-2">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${progress}%`, background: "var(--clay-orange)" }}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {entry.unrevealedCount > 0 && (
+                      <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700">
+                        {entry.unrevealedCount} link(s) pendente(s)
+                      </span>
+                    )}
+                    {entry.justCompleted && (
+                      <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700">
+                        🎁 Cartão preenchido! Enviar: {entry.rewardDescription}
+                      </span>
+                    )}
+                    {!entry.justCompleted && entry.cyclesCompleted > 0 && entry.currentProgress === 0 && entry.revealedCount > 0 && (
+                      <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700">
+                        Novo ciclo — {entry.revealedCount} selos totais
+                      </span>
+                    )}
+                    {entry.currentProgress > 0 && !entry.justCompleted && (
+                      <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-secondary text-secondary-foreground">
+                        {entry.totalStamps - entry.currentProgress} selo(s) para próximo prêmio
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {entry.unrevealedCount > 0 && <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700">{entry.unrevealedCount} link(s) pendente(s)</span>}
-                  {entry.revealedCount >= entry.totalStamps && <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700">Completo!</span>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

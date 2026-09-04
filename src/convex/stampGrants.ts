@@ -64,6 +64,7 @@ export const createStamps = mutation({
 
 /**
  * Get all stamps for a business, grouped by customer.
+ * Cycle-aware: shows cyclesCompleted, currentProgress, justCompleted, rewardDescription.
  */
 export const getStampsByCustomer = query({
   args: { businessId: v.id("businesses") },
@@ -93,7 +94,7 @@ export const getStampsByCustomer = query({
 
     const cardMap = new Map(cards.map((c) => [c._id, c]));
 
-    // Group stamps by customer and loyalty card
+    // Group stamps by customer
     const customerMap = new Map<
       string,
       {
@@ -103,6 +104,10 @@ export const getStampsByCustomer = query({
         unrevealedCount: number;
         cardName: string;
         totalStamps: number;
+        cyclesCompleted: number;
+        currentProgress: number;
+        justCompleted: boolean;
+        rewardDescription: string;
       }
     >();
 
@@ -114,6 +119,10 @@ export const getStampsByCustomer = query({
         unrevealedCount: 0,
         cardName: "",
         totalStamps: 0,
+        cyclesCompleted: 0,
+        currentProgress: 0,
+        justCompleted: false,
+        rewardDescription: "",
       });
     }
 
@@ -132,6 +141,16 @@ export const getStampsByCustomer = query({
       if (card) {
         entry.cardName = card.cardName;
         entry.totalStamps = card.totalStamps;
+        entry.rewardDescription = card.rewardDescription;
+      }
+    }
+
+    // Calculate cycle info for each customer
+    for (const entry of customerMap.values()) {
+      if (entry.totalStamps > 0) {
+        entry.currentProgress = entry.revealedCount % entry.totalStamps;
+        entry.cyclesCompleted = Math.floor(entry.revealedCount / entry.totalStamps);
+        entry.justCompleted = entry.currentProgress === 0 && entry.revealedCount > 0;
       }
     }
 
