@@ -78,7 +78,8 @@ const schema = defineSchema(
       .index("by_loyalty_card", ["loyaltyCardId"])
       .index("by_business", ["businessId"])
       .index("by_loyalty_customer", ["loyaltyCardId", "customerId"])
-      .index("by_token", ["token"]),
+      .index("by_token", ["token"])
+      .index("by_batch_token", ["batchToken"]),
   },
   {
     schemaValidation: false,

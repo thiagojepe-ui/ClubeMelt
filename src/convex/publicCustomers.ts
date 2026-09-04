@@ -219,11 +219,13 @@ export const revealByToken = mutation({
 export const getByBatchToken = query({
   args: { batchToken: v.string() },
   handler: async (ctx, args) => {
-    // Find all stamps with this batchToken
-    const allStamps = await ctx.db.query("stamps").collect();
-    const batchStamps = allStamps.filter(
-      (s) => s.batchToken === args.batchToken,
-    );
+    // Use the index for efficient lookup
+    const batchStamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_batch_token", (q) =>
+        q.eq("batchToken", args.batchToken),
+      )
+      .collect();
 
     if (batchStamps.length === 0) return null;
 
@@ -264,24 +266,29 @@ export const getByBatchToken = query({
 });
 
 /**
- * Reveal the next unrevealed stamp in a batch. Single-use per page load.
- * The client clicks once per visit; page reloads to reveal next.
+ * Reveal the next unrevealed stamp in a batch. Single-use per click.
+ * The client clicks once per stamp; stays on same page.
  */
 export const revealNextByBatchToken = mutation({
   args: { batchToken: v.string() },
   handler: async (ctx, args) => {
-    // Find all stamps with this batchToken
-    const allStamps = await ctx.db.query("stamps").collect();
-    const batchStamps = allStamps
-      .filter((s) => s.batchToken === args.batchToken)
-      .sort((a, b) => a.createdAt - b.createdAt);
+    // Use the index for efficient lookup
+    const batchStamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_batch_token", (q) =>
+        q.eq("batchToken", args.batchToken),
+      )
+      .collect();
 
     if (batchStamps.length === 0) {
       throw new Error("Link inválido ou expirado");
     }
 
+    // Sort by createdAt to reveal in order
+    const sorted = batchStamps.sort((a, b) => a.createdAt - b.createdAt);
+
     // Find the first unrevealed stamp
-    const nextStamp = batchStamps.find((s) => !s.revealed);
+    const nextStamp = sorted.find((s) => !s.revealed);
     if (!nextStamp) {
       throw new Error("Todos os carimbos deste lote já foram coletados");
     }
@@ -367,13 +374,23 @@ export const getMyBatches = query({
       }
     >();
 
+    // Cache card and business lookups to avoid repeated DB reads
+    const cardCache = new Map<string, any>();
+    const businessCache = new Map<string, any>();
+
     for (const stamp of allStamps) {
       const bt = stamp.batchToken || stamp.token || "solo";
       if (!batchMap.has(bt)) {
-        const card = await ctx.db.get(stamp.loyaltyCardId);
-        const business = card
-          ? await ctx.db.get(card.businessId)
-          : null;
+        let card = cardCache.get(stamp.loyaltyCardId);
+        if (card === undefined) {
+          card = await ctx.db.get(stamp.loyaltyCardId);
+          cardCache.set(stamp.loyaltyCardId, card);
+        }
+        let business = card ? businessCache.get(card.businessId) : null;
+        if (business === undefined && card) {
+          business = await ctx.db.get(card.businessId);
+          businessCache.set(card.businessId, business);
+        }
         batchMap.set(bt, {
           batchToken: bt,
           loyaltyCardId: stamp.loyaltyCardId,
