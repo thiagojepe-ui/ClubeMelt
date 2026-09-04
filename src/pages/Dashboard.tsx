@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = "/";
+    window.location.href = "/auth";
   };
 
   if (business === undefined || business === null) {
