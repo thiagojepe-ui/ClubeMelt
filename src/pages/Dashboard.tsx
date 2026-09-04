@@ -334,7 +334,7 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold">Cartões Fidelidade</h2>
         <button
-          onClick={() => setShowCreate(!showCreate)}
+          onClick={() => { setEditingCard(null); setShowCreate(!showCreate); }}
           className="clay-button bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -343,7 +343,7 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
       </div>
 
       <AnimatePresence>
-        {showCreate && (
+        {(showCreate || editingCard) && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
