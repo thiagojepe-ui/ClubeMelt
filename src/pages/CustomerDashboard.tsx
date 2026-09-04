@@ -44,8 +44,15 @@ export default function CustomerDashboard() {
     ? batches.find((b) => b.batchPending > 0) ?? batches[0]
     : null;
 
-  // Total cycles completed across all cards
-  const totalCyclesCompleted = batches.reduce((sum, b) => sum + b.cyclesCompleted, 0);
+  // Total cycles completed — deduplicate by loyaltyCardId to avoid double-counting
+  const cyclesByCard = new Map<string, number>();
+  for (const b of batches) {
+    const prev = cyclesByCard.get(b.loyaltyCardId) ?? 0;
+    if (b.cyclesCompleted > prev) {
+      cyclesByCard.set(b.loyaltyCardId, b.cyclesCompleted);
+    }
+  }
+  const totalCyclesCompleted = Array.from(cyclesByCard.values()).reduce((sum, c) => sum + c, 0);
 
   if (!batches || batches.length === 0) {
     return (
