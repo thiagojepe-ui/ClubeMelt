@@ -66,7 +66,7 @@ export default function CustomerDashboard() {
           </div>
           <h1 className="text-xl font-bold mb-2">Nenhum carimbo ainda</h1>
           <p className="text-muted-foreground text-sm">
-            Aguarde o estabelecimento enviar links para você coletar carimbos. Eles aparecerão aqui!
+            Aguarde o estabelecimento enviar links para você coletar selos. Eles aparecerão aqui!
           </p>
         </div>
       </main>
@@ -249,7 +249,7 @@ function CurrentCard({
             style={{ background: cardBrandColor, color: "white" }}
           >
             <MousePointerClick className="w-4 h-4" />
-            Coletar carimbo{batch.batchPending > 1 ? "s" : ""}{" "}
+            Coletar selo{batch.batchPending > 1 ? "s" : ""}{" "}
             ({batch.batchPending} restante{batch.batchPending > 1 ? "s" : ""})
           </a>
         )}

@@ -167,7 +167,7 @@ export const revealByToken = mutation({
     if (!stamp) throw new Error("Link inválido ou expirado");
 
     if (stamp.revealed) {
-      throw new Error("Este carimbo já foi coletado");
+      throw new Error("Este selo já foi coletado");
     }
 
     const card = await ctx.db.get(stamp.loyaltyCardId);
@@ -303,7 +303,7 @@ export const revealNextByBatchToken = mutation({
     // Find the first unrevealed stamp
     const nextStamp = sorted.find((s) => !s.revealed);
     if (!nextStamp) {
-      throw new Error("Todos os carimbos deste lote já foram coletados");
+      throw new Error("Todos os selos deste lote já foram coletados");
     }
 
     const card = await ctx.db.get(nextStamp.loyaltyCardId);

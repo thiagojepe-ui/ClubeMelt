@@ -29,7 +29,7 @@ export default function CardView() {
       setLastReveal(result);
       setShowPrize(true);
     } catch (err: any) {
-      setError(err?.data?.message || err?.message || "Erro ao coletar carimbo");
+      setError(err?.data?.message || err?.message || "Erro ao coletar selo");
     }
     setRevealing(false);
   }, [batchToken, revealing, showPrize, revealNext]);
@@ -253,7 +253,7 @@ export default function CardView() {
                 ) : (
                   <Star className="w-5 h-5" />
                 )}
-                {revealing ? "Coletando..." : "Coletar carimbo"}
+                {revealing ? "Coletando..." : "Coletar selo"}
               </button>
             )}
 
