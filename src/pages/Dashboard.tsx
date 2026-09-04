@@ -1,10 +1,10 @@
 import { api } from "@/convex/_generated/api";
+import CookieLogo from "@/components/CookieLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery } from "convex/react";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Store,
   CreditCard,
   Users,
   Stamp,
@@ -12,7 +12,6 @@ import {
   Plus,
   Search,
   ChevronRight,
-  Settings,
   Link,
   Copy,
   Check,
@@ -21,7 +20,6 @@ import {
   UserPlus,
   Zap,
   Star,
-  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,64 +30,26 @@ export default function Dashboard() {
   const [view, setView] = useState<DashboardView>("overview");
 
   const business = useQuery(api.businesses.getByUser);
-  const createBusiness = useMutation(api.businesses.create);
-  const updateBusiness = useMutation(api.businesses.update);
+  const ensureBusiness = useMutation(api.businesses.ensure);
 
-  const [showSetup, setShowSetup] = useState(false);
-  const [bizName, setBizName] = useState("");
-  const [bizColor, setBizColor] = useState("#F28B50");
-  const [bizEmoji, setBizEmoji] = useState("☕");
-  const [saving, setSaving] = useState(false);
-
-  const handleSaveBusiness = async () => {
-    if (!bizName.trim()) return;
-    setSaving(true);
-    try {
-      await createBusiness({ name: bizName, brandColor: bizColor, logoEmoji: bizEmoji });
-      toast.success("Negócio criado com sucesso!");
-      setShowSetup(false);
-    } catch {
-      toast.error("Erro ao salvar negócio");
+  // The store is fixed: MeltCookies is auto-created on first visit.
+  useEffect(() => {
+    if (business === null) {
+      ensureBusiness().catch((err) => {
+        console.error("Failed to ensure MeltCookies business:", err);
+      });
     }
-    setSaving(false);
-  };
+  }, [business, ensureBusiness]);
 
   const handleSignOut = async () => {
     await signOut();
     window.location.href = "/";
   };
 
-  if (business === undefined) {
+  if (business === undefined || business === null) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground text-sm">Carregando...</div>
-      </main>
-    );
-  }
-
-  if (!business && !showSetup) {
-    return (
-      <main className="min-h-screen bg-background px-4 py-8">
-        <div className="mx-auto max-w-lg flex flex-col items-center justify-center min-h-[70vh]">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="clay-card p-10 text-center"
-          >
-            <div className="text-5xl mb-4">🏪</div>
-            <h1 className="text-2xl font-bold mb-2">Bem-vindo!</h1>
-            <p className="text-muted-foreground mb-6">
-              Configure seu negócio para começar a criar cartões fidelidade.
-            </p>
-            <button
-              onClick={() => setShowSetup(true)}
-              className="clay-button bg-primary text-primary-foreground px-8 py-3 font-semibold text-base"
-            >
-              <Store className="w-5 h-5 inline mr-2" />
-              Configurar meu negócio
-            </button>
-          </motion.div>
-        </div>
       </main>
     );
   }
@@ -99,24 +59,17 @@ export default function Dashboard() {
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{business?.logoEmoji || "🏪"}</span>
-            <span className="font-bold text-lg hidden sm:inline">{business?.name || "Carregando..."}</span>
+            <span
+              className="w-10 h-10 rounded-2xl flex items-center justify-center clay-badge"
+              style={{ background: "oklch(0.93 0.05 60)" }}
+            >
+              <CookieLogo size={26} />
+            </span>
+            <span className="font-bold text-lg hidden sm:inline">
+              {business.name}
+            </span>
           </div>
           <div className="flex items-center gap-2">
-            <NavButton
-              icon={<Settings className="w-4 h-4" />}
-              label="Negócio"
-              active={showSetup}
-              onClick={() => {
-                if (business) {
-                  setBizName(business.name);
-                  setBizColor(business.brandColor || "#F28B50");
-                  setBizEmoji(business.logoEmoji || "☕");
-                }
-                setShowSetup(true);
-                setView("overview");
-              }}
-            />
             <button
               onClick={handleSignOut}
               className="clay-button-secondary p-2.5"
@@ -130,41 +83,14 @@ export default function Dashboard() {
 
       <div className="max-w-6xl mx-auto px-4 py-6">
         <AnimatePresence mode="wait">
-          {showSetup ? (
-            <BusinessSetup
-              key="setup"
-              name={bizName}
-              color={bizColor}
-              emoji={bizEmoji}
-              onNameChange={setBizName}
-              onColorChange={setBizColor}
-              onEmojiChange={setBizEmoji}
-              onSave={handleSaveBusiness}
-              saving={saving}
-              existing={!!business}
-              onClose={() => setShowSetup(false)}
-              onUpdate={async () => {
-                if (!business) return;
-                setSaving(true);
-                try {
-                  await updateBusiness({ name: bizName, brandColor: bizColor, logoEmoji: bizEmoji });
-                  toast.success("Negócio atualizado!");
-                  setShowSetup(false);
-                } catch {
-                  toast.error("Erro ao atualizar");
-                }
-                setSaving(false);
-              }}
-            />
-          ) : (
-            <motion.div
+          <motion.div
               key="main"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
               {/* Quick Stats */}
-              <QuickStats businessId={business!._id} />
+              <QuickStats businessId={business._id} />
 
               {/* Action Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -194,13 +120,13 @@ export default function Dashboard() {
               {/* Sub-views */}
               <AnimatePresence mode="wait">
                 {view === "cards" && (
-                  <CardsView key="cards" businessId={business!._id} brandColor={bizColor} />
+                  <CardsView key="cards" businessId={business._id} brandColor={business.brandColor || "#B5651D"} />
                 )}
                 {view === "customers" && (
-                  <CustomersView key="customers" businessId={business!._id} />
+                  <CustomersView key="customers" businessId={business._id} />
                 )}
                 {view === "stamps" && (
-                  <StampsView key="stamps" businessId={business!._id} />
+                  <StampsView key="stamps" businessId={business._id} />
                 )}
               </AnimatePresence>
             </motion.div>
@@ -208,30 +134,6 @@ export default function Dashboard() {
         </AnimatePresence>
       </div>
     </main>
-  );
-}
-
-/* ─── Nav Button ─────────────────────────────────── */
-
-function NavButton({
-  icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`clay-button-secondary p-2.5 ${active ? "ring-2 ring-primary/30" : ""}`}
-      title={label}
-    >
-      {icon}
-    </button>
   );
 }
 
@@ -313,124 +215,6 @@ function ActionCard({
       <h3 className="font-bold text-base mb-1">{title}</h3>
       <p className="text-sm text-muted-foreground">{description}</p>
     </motion.button>
-  );
-}
-
-/* ─── Business Setup ─────────────────────────────── */
-
-function BusinessSetup({
-  name,
-  color,
-  emoji,
-  onNameChange,
-  onColorChange,
-  onEmojiChange,
-  onSave,
-  saving,
-  existing,
-  onClose,
-  onUpdate,
-}: {
-  name: string;
-  color: string;
-  emoji: string;
-  onNameChange: (v: string) => void;
-  onColorChange: (v: string) => void;
-  onEmojiChange: (v: string) => void;
-  onSave: () => void;
-  saving: boolean;
-  existing: boolean;
-  onClose: () => void;
-  onUpdate: () => void;
-}) {
-  const emojis = ["☕", "🍕", "🧁", "🌮", "💈", "💅", "🏋️", "🐕", "📚", "🎨", "🌸", "🎸"];
-  const colors = ["#F28B50", "#E88D67", "#D4A574", "#7CB69D", "#6BAED6", "#9B8EC4", "#C77DBA", "#E8A87C"];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-    >
-      <div className="clay-card p-8 max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">
-            {existing ? "Editar negócio" : "Configure seu negócio"}
-          </h2>
-          {existing && (
-            <button onClick={onClose} className="clay-button-secondary p-2">
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          {/* Emoji picker */}
-          <div>
-            <label className="text-sm font-semibold mb-2 block">Ícone do negócio</label>
-            <div className="flex flex-wrap gap-2">
-              {emojis.map((e) => (
-                <button
-                  key={e}
-                  onClick={() => onEmojiChange(e)}
-                  className={`stamp-slot text-xl ${
-                    emoji === e ? "stamp-slot-filled" : "stamp-slot-empty"
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="text-sm font-semibold mb-2 block">Nome do negócio</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => onNameChange(e.target.value)}
-              placeholder="Ex: Padaria do João"
-              className="clay-input w-full px-4 py-3 text-base"
-            />
-          </div>
-
-          {/* Color */}
-          <div>
-            <label className="text-sm font-semibold mb-2 block">Cor da marca</label>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onColorChange(c)}
-                  className={`w-10 h-10 rounded-xl transition-all ${
-                    color === c ? "ring-2 ring-offset-2 ring-primary scale-110" : "hover:scale-105"
-                  }`}
-                  style={{ background: c }}
-                />
-              ))}
-              <label className="w-10 h-10 rounded-xl clay-input flex items-center justify-center cursor-pointer overflow-hidden">
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => onColorChange(e.target.value)}
-                  className="absolute opacity-0 w-0 h-0"
-                />
-                <Edit3 className="w-4 h-4 text-muted-foreground" />
-              </label>
-            </div>
-          </div>
-
-          <button
-            onClick={existing ? onUpdate : onSave}
-            disabled={!name.trim() || saving}
-            className="clay-button bg-primary text-primary-foreground px-8 py-3 font-semibold w-full text-base disabled:opacity-50"
-          >
-            {saving ? "Salvando..." : existing ? "Salvar alterações" : "Começar"}
-          </button>
-        </div>
-      </div>
-    </motion.div>
   );
 }
 

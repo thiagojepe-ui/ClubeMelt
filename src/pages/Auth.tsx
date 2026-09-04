@@ -14,8 +14,9 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
+import CookieLogo from "@/components/CookieLogo";
 import { useAuth } from "@/hooks/use-auth";
-import { Stamp, ArrowRight, Loader2, Mail, UserX } from "lucide-react";
+import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
@@ -122,13 +123,16 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             <>
               <CardHeader className="text-center">
               <div className="flex justify-center">
-                    <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white mb-4 clay-badge">
-                      <Stamp className="w-8 h-8" />
+                    <div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 clay-badge"
+                      style={{ background: "oklch(0.93 0.05 60)" }}
+                    >
+                      <CookieLogo size={40} />
                     </div>
                   </div>
-                <CardTitle className="text-xl">Bem-vindo ao Fideliza</CardTitle>
+                <CardTitle className="text-xl">Bem-vindo à MeltCookies</CardTitle>
                 <CardDescription>
-                  Entre com seu email para começar a fidélizar
+                  Entre com seu email para acessar o painel
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>

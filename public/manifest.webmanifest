@@ -1,7 +1,7 @@
 {
-  "name": "freebuff.com application",
-  "short_name": "freebuff.com",
-  "description": "freebuff.com application",
+  "name": "MeltCookies — Fidelidade Digital",
+  "short_name": "MeltCookies",
+  "description": "Cartão fidelidade digital da MeltCookies",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
