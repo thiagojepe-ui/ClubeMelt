@@ -10,7 +10,7 @@ export const register = mutation({
   args: {
     username: v.string(),
     password: v.string(),
-    name: v.string(),
+    name: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const username = args.username.toLowerCase().trim();
@@ -28,7 +28,7 @@ export const register = mutation({
     const adminId = await ctx.db.insert("admins", {
       username,
       password: args.password,
-      name: args.name,
+      name: args.name || args.username,
       userId: "pending" as any,
       createdAt: Date.now(),
     });
@@ -105,6 +105,18 @@ export const login = mutation({
       name: admin.name,
       username: admin.username,
     };
+  },
+});
+
+/**
+ * Check if any admin exists in the system.
+ * Used to determine if registration should be available.
+ */
+export const hasAdmin = query({
+  args: {},
+  handler: async (ctx) => {
+    const admin = await ctx.db.query("admins").first();
+    return admin !== null;
   },
 });
 
