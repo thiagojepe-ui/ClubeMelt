@@ -2,7 +2,7 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Star, Gift, PartyPopper, Loader2 } from "lucide-react";
 
 export default function CardView() {
@@ -131,20 +131,20 @@ export default function CardView() {
         </div>
       </motion.div>
 
-      <AnimatePresence>
-        {showPrizeModal && lastReveal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setShowPrizeModal(false)}>
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.5, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 20 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="clay-float p-8 text-center relative z-10 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+      {showPrizeModal && lastReveal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setShowPrizeModal(false)}>
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+          <div className="clay-float p-8 text-center relative z-10 max-w-sm w-full" onClick={(e) => e.stopPropagation()}
+            style={{ animation: "clayModalIn 0.3s ease-out" }}>
               <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full opacity-20 blur-2xl" style={{ background: brandColor }} />
               <div className="relative z-10">
                 {lastReveal.prize?.isPrize ? (
                   <>
-                    <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, delay: 0.1 }} className="text-5xl mb-3">🎁</motion.div>
+                    <div className="text-5xl mb-3">🎁</div>
                     <div className="clay-badge px-3 py-1 text-xs font-semibold mb-3" style={{ background: `${brandColor}15`, color: brandColor }}>Prêmio!</div>
                   </>
                 ) : (
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }} className="text-5xl mb-3">⭐</motion.div>
+                  <div className="text-5xl mb-3">⭐</div>
                 )}
                 <h3 className="text-xl font-bold mb-2">{lastReveal.prize?.isPrize ? "Parabéns!" : "Selo coletado!"}</h3>
                 <p className="text-muted-foreground text-sm mb-5 leading-relaxed">{lastReveal.prize?.message || "Carimbo coletado!"}</p>
@@ -163,10 +163,9 @@ export default function CardView() {
                   {lastReveal.completed ? "Ver recompensa" : "Fechar"}
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
