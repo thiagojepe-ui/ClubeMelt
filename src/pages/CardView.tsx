@@ -293,7 +293,7 @@ export default function CardView() {
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Faltam {lastReveal.totalStamps - lastReveal.currentProgress} para completar o ciclo.
+                  Faltam {lastReveal.totalStamps - lastReveal.currentProgress} para completar o cartão e receber o prêmio!
                 </p>
               )}
 
