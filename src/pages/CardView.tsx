@@ -72,7 +72,7 @@ export default function CardView() {
     );
   }
 
-  const { card, business, customer, batchPending, totalStamps, cyclesCompleted } = data;
+  const { card, business, customer, totalStamps, cyclesCompleted } = data;
 
   // Use lastReveal data for optimistic updates when prize is showing
   const displayProgress = showPrize && lastReveal
@@ -83,13 +83,10 @@ export default function CardView() {
     : cyclesCompleted;
   const displayBatchPending = showPrize && lastReveal
     ? lastReveal.batchPending
-    : batchPending;
+    : data.batchPending;
 
   // All stamps in this batch collected
   const allBatchDone = displayBatchPending === 0 && !showPrize;
-
-  // Check if we just completed a cycle (from the reveal)
-  const justCompleted = showPrize && lastReveal?.justCompleted;
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
@@ -134,15 +131,15 @@ export default function CardView() {
             <p className="text-sm text-muted-foreground text-center mb-6">
               {allBatchDone
                 ? displayCyclesCompleted > 0
-                  ? "Todos os carimbos deste lote coletados! Aguarde novos links."
-                  : "Todos os carimbos coletados! ✨"
+                  ? "Todos os selos deste lote coletados! Aguarde novos links."
+                  : "Todos os selos coletados! ✨"
                 : displayBatchPending > 0
                   ? `Toque para coletar — ${displayBatchPending} restante(s)`
                   : "Carregando..."
               }
             </p>
 
-            {/* Stamp slots grid */}
+            {/* Stamp slots grid — always rendered, never unmounts */}
             <div className="flex flex-wrap gap-2 justify-center mb-6">
               {Array.from({ length: totalStamps }).map((_, i) => {
                 const isRevealed = i < displayProgress;
@@ -168,80 +165,8 @@ export default function CardView() {
               })}
             </div>
 
-            {/* Prize reveal inline */}
-            {showPrize && lastReveal && (
-              <div
-                className="mb-5 p-4 rounded-2xl text-center relative overflow-hidden"
-                style={{
-                  background: lastReveal.prize?.isPrize
-                    ? `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`
-                    : "oklch(0.96 0.005 90)",
-                  border: `2px solid ${lastReveal.prize?.isPrize ? brandColor + "30" : "oklch(0.9 0.01 90 / 0.5)"}`,
-                  animation: "clayModalIn 0.3s ease-out",
-                }}
-              >
-                <div className="relative z-10">
-                  {lastReveal.prize?.isPrize ? (
-                    <>
-                      <div className="text-3xl mb-2">🎁</div>
-                      <div
-                        className="clay-badge px-3 py-1 text-xs font-semibold mb-2 inline-flex"
-                        style={{ background: `${brandColor}15`, color: brandColor }}
-                      >
-                        Prêmio!
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-3xl mb-2">⭐</div>
-                  )}
-                  <p className="font-bold text-base mb-1">
-                    {lastReveal.justCompleted
-                      ? "🎉 Ciclo completo!"
-                      : lastReveal.prize?.isPrize
-                        ? "Parabéns!"
-                        : "Selo coletado!"
-                    }
-                  </p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {lastReveal.prize?.message || "Carimbo coletado!"}
-                  </p>
-
-                  {lastReveal.justCompleted ? (
-                    <div className="mt-3 space-y-2">
-                      <div className="clay-badge px-4 py-2 inline-flex items-center gap-2 bg-primary text-primary-foreground">
-                        <PartyPopper className="w-4 h-4" />
-                        <span className="font-bold text-sm">Recompensa desbloqueada!</span>
-                      </div>
-                      <p className="text-sm font-semibold" style={{ color: brandColor }}>
-                        {lastReveal.rewardDescription}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Continue coletando selos para o próximo prêmio!
-                      </p>
-                    </div>
-                  ) : lastReveal.batchPending > 0 ? (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Ainda tem {lastReveal.batchPending} carimbo(s) — colete o próximo!
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Faltam {lastReveal.totalStamps - lastReveal.currentProgress} para completar o ciclo.
-                    </p>
-                  )}
-
-                  <button
-                    onClick={dismissPrize}
-                    className="clay-button px-5 py-2 text-sm font-semibold mt-3"
-                    style={{ background: brandColor, color: "white" }}
-                  >
-                    {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Collect button */}
-            {!allBatchDone && !showPrize && (
+            {/* Collect button — always in DOM, just hidden when showing prize or batch done */}
+            <div style={{ display: showPrize || allBatchDone ? "none" : "block" }}>
               <button
                 onClick={handleReveal}
                 disabled={revealing}
@@ -255,21 +180,19 @@ export default function CardView() {
                 )}
                 {revealing ? "Coletando..." : "Coletar selo"}
               </button>
-            )}
+            </div>
 
-            {/* Batch complete — waiting for more */}
-            {allBatchDone && (
-              <div className="text-center py-2">
-                <div className="text-4xl mb-3">✨</div>
-                <p className="font-bold text-base mb-1">Lote completo!</p>
-                <p className="text-sm text-muted-foreground">
-                  {displayCyclesCompleted > 0
-                    ? `${customer?.name ? customer.name + ", você" : "Você"} já completou ${displayCyclesCompleted} ciclo(s). Aguarde novos links para continuar!`
-                    : `${customer?.name ? customer.name + ", você" : "Você"} coletou todos os carimbos deste link.`
-                  }
-                </p>
-              </div>
-            )}
+            {/* Batch complete message — always in DOM, just hidden when not done */}
+            <div className="text-center py-2" style={{ display: allBatchDone && !showPrize ? "block" : "none" }}>
+              <div className="text-4xl mb-3">✨</div>
+              <p className="font-bold text-base mb-1">Lote completo!</p>
+              <p className="text-sm text-muted-foreground">
+                {displayCyclesCompleted > 0
+                  ? `${customer?.name ? customer.name + ", você" : "Você"} já completou ${displayCyclesCompleted} ciclo(s). Aguarde novos links para continuar!`
+                  : `${customer?.name ? customer.name + ", você" : "Você"} coletou todos os selos deste link.`
+                }
+              </p>
+            </div>
 
             {error && <p className="text-sm text-red-500 mt-3 text-center">{error}</p>}
           </div>
@@ -297,6 +220,85 @@ export default function CardView() {
           )}
         </div>
       </div>
+
+      {/* Prize reveal overlay — positioned absolutely, doesn't affect main flow */}
+      {showPrize && lastReveal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}
+          onClick={dismissPrize}
+        >
+          <div
+            className="clay-float p-6 w-full max-w-sm text-center relative overflow-hidden"
+            style={{
+              background: lastReveal.prize?.isPrize
+                ? `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`
+                : "oklch(0.96 0.005 90)",
+              border: `2px solid ${lastReveal.prize?.isPrize ? brandColor + "30" : "oklch(0.9 0.01 90 / 0.5)"}`,
+              animation: "clayModalIn 0.3s ease-out",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative z-10">
+              {lastReveal.prize?.isPrize ? (
+                <>
+                  <div className="text-4xl mb-3">🎁</div>
+                  <div
+                    className="clay-badge px-3 py-1 text-xs font-semibold mb-2 inline-flex"
+                    style={{ background: `${brandColor}15`, color: brandColor }}
+                  >
+                    Prêmio!
+                  </div>
+                </>
+              ) : (
+                <div className="text-4xl mb-3">⭐</div>
+              )}
+              <p className="font-bold text-lg mb-1">
+                {lastReveal.justCompleted
+                  ? "🎉 Ciclo completo!"
+                  : lastReveal.prize?.isPrize
+                    ? "Parabéns!"
+                    : "Selo coletado!"
+                }
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                {lastReveal.prize?.message || "Selo coletado!"}
+              </p>
+
+              {lastReveal.justCompleted ? (
+                <div className="space-y-3">
+                  <div className="clay-badge px-4 py-2 inline-flex items-center gap-2 bg-primary text-primary-foreground">
+                    <PartyPopper className="w-4 h-4" />
+                    <span className="font-bold text-sm">Recompensa desbloqueada!</span>
+                  </div>
+                  <p className="text-sm font-semibold" style={{ color: brandColor }}>
+                    {lastReveal.rewardDescription}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Continue coletando selos para o próximo prêmio!
+                  </p>
+                </div>
+              ) : lastReveal.batchPending > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Ainda tem {lastReveal.batchPending} selo(s) — colete o próximo!
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Faltam {lastReveal.totalStamps - lastReveal.currentProgress} para completar o ciclo.
+                </p>
+              )}
+
+              <button
+                onClick={dismissPrize}
+                className="clay-button px-6 py-2.5 text-sm font-semibold mt-4 w-full"
+                style={{ background: brandColor, color: "white" }}
+              >
+                {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
