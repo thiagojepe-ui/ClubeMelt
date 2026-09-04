@@ -2,7 +2,6 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
 import { Star, Gift, PartyPopper, Loader2 } from "lucide-react";
 
 export default function CardView() {
@@ -68,14 +67,14 @@ export default function CardView() {
     );
   }
 
-  const { card, business, customer, batchPending, totalRevealed, totalStamps, completed } = data;
+  const { card, business, customer, batchPending, totalRevealed, totalStamps } = data;
 
   // All stamps in this batch have been collected
   if (batchPending === 0 && !showPrizeModal) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
         <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-10 text-center max-w-sm relative z-10">
+        <div className="clay-card p-10 text-center max-w-sm relative z-10">
           <div className="text-5xl mb-4">✨</div>
           <h1 className="text-xl font-bold mb-2">Todos coletados!</h1>
           <p className="text-muted-foreground text-sm mb-4">
@@ -84,7 +83,7 @@ export default function CardView() {
           <p className="text-xs text-muted-foreground">
             Peça um novo link na próxima compra para coletar mais selos.
           </p>
-        </motion.div>
+        </div>
       </main>
     );
   }
@@ -94,11 +93,11 @@ export default function CardView() {
       <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
       <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
 
-      <motion.div initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5 }} className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-6">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }} className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge" style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}>
+          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge" style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}>
             {business.logoEmoji || "🏪"}
-          </motion.div>
+          </div>
           <h1 className="text-2xl font-bold">{business.name}</h1>
           {customer?.name && <p className="text-muted-foreground mt-1">Olá, {customer.name}!</p>}
         </div>
@@ -115,9 +114,9 @@ export default function CardView() {
               {totalRevealed} de {totalStamps} coletados · {batchPending} restante(s) neste link
             </p>
 
-            <motion.div animate={!revealing ? { scale: [1, 1.05, 1] } : { scale: [1, 0.95, 1.1, 0] }} transition={!revealing ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.4 }} className="w-24 h-24 mx-auto mb-6 rounded-3xl stamp-slot-empty flex items-center justify-center" style={{ borderColor: `${brandColor}40`, boxShadow: `0 0 0 3px ${brandColor}15, inset 0 2px 6px oklch(0.7 0.01 90 / 0.1)` }}>
+            <div className="w-24 h-24 mx-auto mb-6 rounded-3xl stamp-slot-empty flex items-center justify-center" style={{ borderColor: `${brandColor}40`, boxShadow: `0 0 0 3px ${brandColor}15, inset 0 2px 6px oklch(0.7 0.01 90 / 0.1)` }}>
               <span className="text-3xl font-bold" style={{ color: brandColor }}>?</span>
-            </motion.div>
+            </div>
 
             <button onClick={handleReveal} disabled={revealing} className="clay-button px-8 py-3.5 font-semibold text-base disabled:opacity-50" style={{ background: brandColor, color: "white" }}>
               {revealing ? <Loader2 className="w-5 h-5 animate-spin inline mr-2" /> : <Star className="w-5 h-5 inline mr-2" />}
@@ -135,13 +134,13 @@ export default function CardView() {
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Recompensa do cartão</p>
           <p className="text-sm font-bold">{card.rewardDescription}</p>
         </div>
-      </motion.div>
+      </div>
 
       {showPrizeModal && lastReveal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setShowPrizeModal(false)}>
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
           <div className="clay-float p-8 text-center relative z-10 max-w-sm w-full" onClick={(e) => e.stopPropagation()}
-            style={{ animation: "clayModalIn 0.3s ease-out" }}>
+            style={{ animation: "clayModalIn 0.25s ease-out" }}>
               <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full opacity-20 blur-2xl" style={{ background: brandColor }} />
               <div className="relative z-10">
                 {lastReveal.prize?.isPrize ? (

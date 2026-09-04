@@ -2,7 +2,6 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams, useNavigate } from "react-router";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { User, Phone, Loader2, CheckCircle, ArrowRight } from "lucide-react";
 
 export default function CustomerRegister() {
@@ -80,10 +79,8 @@ export default function CustomerRegister() {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
         <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-10 text-center max-w-sm relative z-10">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring" }}>
-            <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: brandColor }} />
-          </motion.div>
+        <div className="clay-card p-10 text-center max-w-sm relative z-10">
+          <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: brandColor }} />
           <h1 className="text-xl font-bold mb-2">Cadastro realizado!</h1>
           <p className="text-muted-foreground text-sm mb-6">
             Bem-vindo, {name}! Seu cadastro foi concluído com sucesso.
@@ -99,7 +96,7 @@ export default function CustomerRegister() {
             Ver meus carimbos
             <ArrowRight className="w-4 h-4" />
           </button>
-        </motion.div>
+        </div>
       </main>
     );
   }
@@ -109,11 +106,11 @@ export default function CustomerRegister() {
       <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
       <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
 
-      <motion.div initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5 }} className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-6">
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }} className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge" style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}>
+          <div className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge" style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}>
             {business.logoEmoji || "🏪"}
-          </motion.div>
+          </div>
           <h1 className="text-2xl font-bold">{business.name}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Cadastre-se para começar a acumular carimbos
@@ -182,7 +179,7 @@ export default function CustomerRegister() {
             Seus dados são usados apenas para fins de fidelidade e não serão compartilhados.
           </p>
         </div>
-      </motion.div>
+      </div>
     </main>
   );
 }

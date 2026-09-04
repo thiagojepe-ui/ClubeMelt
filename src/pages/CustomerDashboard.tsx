@@ -1,7 +1,6 @@
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { useParams } from "react-router";
-import { motion } from "framer-motion";
 import { Star, Gift, Loader2, MousePointerClick } from "lucide-react";
 
 export default function CustomerDashboard() {
@@ -44,13 +43,13 @@ export default function CustomerDashboard() {
         <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl bg-clay-peach" />
         <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-10 text-center max-w-sm relative z-10">
+        <div className="clay-card p-10 text-center max-w-sm relative z-10">
           <div className="text-5xl mb-4">📋</div>
           <h1 className="text-xl font-bold mb-2">Nenhum carimbo ainda</h1>
           <p className="text-muted-foreground text-sm">
             Aguarde o estabelecimento enviar links para você coletar carimbos. Eles aparecerão aqui!
           </p>
-        </motion.div>
+        </div>
       </main>
     );
   }
@@ -61,8 +60,8 @@ export default function CustomerDashboard() {
       <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
 
       <div className="max-w-lg mx-auto relative z-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-3xl flex items-center justify-center text-3xl clay-badge" style={{ background: `${(customerInfo?.brandColor || "var(--clay-orange)")}18`, boxShadow: `0 4px 12px ${customerInfo?.brandColor || "var(--clay-orange)"}15` }}>
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-3xl flex items-center justify-center text-3xl clay-badge" style={{ background: `${customerInfo?.brandColor || "var(--clay-orange)"}18`, boxShadow: `0 4px 12px ${customerInfo?.brandColor || "var(--clay-orange)"}15` }}>
             {customerInfo?.logoEmoji || "⭐"}
           </div>
           <h1 className="text-2xl font-bold mb-1">
@@ -71,19 +70,16 @@ export default function CustomerDashboard() {
           <p className="text-muted-foreground text-sm">
             {customerInfo?.businessName ? `${customerInfo.businessName} · ` : ""}Acompanhe seus selos e prêmios
           </p>
-        </motion.div>
+        </div>
 
         <div className="space-y-4">
-          {batches.map((batch, idx) => {
+          {batches.map((batch) => {
             const brandColor = batch.brandColor || "var(--clay-orange)";
             const progress = batch.totalStamps > 0 ? (batch.totalRevealed / batch.totalStamps) * 100 : 0;
 
             return (
-              <motion.div
-                key={`${batch.loyaltyCardId}-${idx}`}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
+              <div
+                key={`${batch.loyaltyCardId}-${batch.batchToken}`}
                 className="clay-float p-6 relative overflow-hidden"
               >
                 <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-15 blur-3xl" style={{ background: brandColor }} />
@@ -114,24 +110,21 @@ export default function CustomerDashboard() {
                       </span>
                     </div>
                     <div className="w-full h-3 bg-secondary rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="h-full rounded-full"
-                        style={{ background: `linear-gradient(90deg, ${brandColor}, oklch(0.65 0.12 30))` }}
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${brandColor}, oklch(0.65 0.12 30))` }}
                       />
                     </div>
                   </div>
 
                   {/* Stamp slots */}
-                  <div className="flex gap-1.5 my-4">
-                    {Array.from({ length: Math.min(batch.totalStamps, 12) }).map((_, i) => {
+                  <div className="flex gap-1.5 my-4 flex-wrap">
+                    {Array.from({ length: batch.totalStamps }).map((_, i) => {
                       const isRevealed = i < batch.totalRevealed;
                       return (
                         <div
                           key={i}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
                             isRevealed
                               ? "stamp-slot-filled text-white"
                               : "stamp-slot-empty"
@@ -142,11 +135,6 @@ export default function CustomerDashboard() {
                         </div>
                       );
                     })}
-                    {batch.totalStamps > 12 && (
-                      <span className="text-xs text-muted-foreground self-center ml-1">
-                        +{batch.totalStamps - 12}
-                      </span>
-                    )}
                   </div>
 
                   {/* Reward info */}
@@ -175,7 +163,7 @@ export default function CustomerDashboard() {
                     </p>
                   )}
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>

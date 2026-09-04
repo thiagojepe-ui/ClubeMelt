@@ -12,7 +12,6 @@ import {
   Plus,
   Search,
   ChevronRight,
-  Gift,
   Settings,
   Link,
   Copy,
@@ -29,7 +28,7 @@ import { toast } from "sonner";
 type DashboardView = "overview" | "setup" | "cards" | "customers" | "stamps";
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [view, setView] = useState<DashboardView>("overview");
 
   const business = useQuery(api.businesses.getByUser);
@@ -799,10 +798,6 @@ function LoyaltyCardItem({
 
 function CustomersView({ businessId }: { businessId: string }) {
   const allCustomers = useQuery(api.customers.getAll, { businessId: businessId as any });
-  const searchCustomers = useQuery(api.customers.search, {
-    businessId: businessId as any,
-    searchTerm: "",
-  });
   const upsertCustomer = useMutation(api.customers.upsert);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -917,7 +912,7 @@ function CustomersView({ businessId }: { businessId: string }) {
           Envie este link para o cliente — ele mesmo informa nome e telefone.
         </p>
         <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3">
-          <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{registerUrl}</p>
+          <p className="text-[11px] text-muted-foreground break-all flex-1 font-mono leading-relaxed">{registerUrl}</p>
           <button
             onClick={handleCopyRegister}
             className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0"
