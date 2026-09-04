@@ -233,11 +233,35 @@ function CurrentCard({
           })}
         </div>
 
-        {/* Reward info */}
+        {/* Reward card */}
         {batch.rewardDescription && (
-          <div className="flex items-center gap-2 bg-secondary/50 rounded-xl py-2 px-3 mb-3">
-            <Gift className="w-4 h-4 shrink-0" style={{ color: cardBrandColor }} />
-            <p className="text-xs font-semibold truncate">{batch.rewardDescription}</p>
+          <div
+            className="rounded-2xl p-5 text-center mt-2 mb-3 relative overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, ${cardBrandColor}12, ${cardBrandColor}06)`,
+              border: `2px solid ${cardBrandColor}25`,
+            }}
+          >
+            <div
+              className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center text-white clay-badge"
+              style={{
+                background: `linear-gradient(135deg, ${cardBrandColor}, oklch(0.65 0.12 30))`,
+                boxShadow: `0 4px 12px ${cardBrandColor}30`,
+              }}
+            >
+              <Gift className="w-7 h-7" />
+            </div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+              Recompensa do cartão
+            </p>
+            <p className="text-lg font-bold mb-1" style={{ color: cardBrandColor }}>
+              {batch.rewardDescription}
+            </p>
+            {batch.cyclesCompleted > 0 && (
+              <p className="text-xs text-muted-foreground font-medium">
+                {batch.cyclesCompleted}x conquistado{batch.cyclesCompleted > 1 ? "s" : ""}
+              </p>
+            )}
           </div>
         )}
 
