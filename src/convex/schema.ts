@@ -28,6 +28,14 @@ const schema = defineSchema(
       role: v.optional(roleValidator),
     }).index("email", ["email"]),
 
+    admins: defineTable({
+      username: v.string(),
+      password: v.string(),
+      name: v.string(),
+      userId: v.id("users"),
+      createdAt: v.number(),
+    }).index("by_username", ["username"]),
+
     businesses: defineTable({
       userId: v.id("users"),
       name: v.string(),
