@@ -107,6 +107,38 @@ export default function CustomerDashboard() {
               </div>
             </div>
           )}
+
+          {/* Reward card */}
+          {currentBatch?.rewardDescription && (
+            <div
+              className="rounded-2xl p-5 text-center mt-4 relative overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}06)`,
+                border: `2px solid ${brandColor}25`,
+              }}
+            >
+              <div
+                className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center text-white clay-badge"
+                style={{
+                  background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
+                  boxShadow: `0 4px 12px ${brandColor}30`,
+                }}
+              >
+                <Gift className="w-7 h-7" />
+              </div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+                Recompensa do cartão
+              </p>
+              <p className="text-lg font-bold mb-1" style={{ color: brandColor }}>
+                {currentBatch.rewardDescription}
+              </p>
+              {currentBatch.cyclesCompleted > 0 && (
+                <p className="text-xs text-muted-foreground font-medium">
+                  {currentBatch.cyclesCompleted}x conquistado{currentBatch.cyclesCompleted > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Current card */}
@@ -232,38 +264,6 @@ function CurrentCard({
             );
           })}
         </div>
-
-        {/* Reward card */}
-        {batch.rewardDescription && (
-          <div
-            className="rounded-2xl p-5 text-center mt-2 mb-3 relative overflow-hidden"
-            style={{
-              background: `linear-gradient(135deg, ${cardBrandColor}12, ${cardBrandColor}06)`,
-              border: `2px solid ${cardBrandColor}25`,
-            }}
-          >
-            <div
-              className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center text-white clay-badge"
-              style={{
-                background: `linear-gradient(135deg, ${cardBrandColor}, oklch(0.65 0.12 30))`,
-                boxShadow: `0 4px 12px ${cardBrandColor}30`,
-              }}
-            >
-              <Gift className="w-7 h-7" />
-            </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
-              Recompensa do cartão
-            </p>
-            <p className="text-lg font-bold mb-1" style={{ color: cardBrandColor }}>
-              {batch.rewardDescription}
-            </p>
-            {batch.cyclesCompleted > 0 && (
-              <p className="text-xs text-muted-foreground font-medium">
-                {batch.cyclesCompleted}x conquistado{batch.cyclesCompleted > 1 ? "s" : ""}
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Collect action */}
         {batch.batchPending > 0 && (
