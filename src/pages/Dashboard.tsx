@@ -447,26 +447,49 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
   const [totalStamps, setTotalStamps] = useState(8);
   const [rewardDesc, setRewardDesc] = useState("");
   const [creating, setCreating] = useState(false);
+  const [stampPrizes, setStampPrizes] = useState<
+    { message: string; isPrize: boolean }[]
+  >([]);
 
   const handleCreate = async () => {
     if (!cardName.trim() || !rewardDesc.trim()) return;
     setCreating(true);
     try {
+      // Auto-generate prizes if empty
+      const prizes =
+        stampPrizes.length === totalStamps
+          ? stampPrizes
+          : Array.from({ length: totalStamps }, (_, i) => {
+              const existing = stampPrizes[i];
+              if (existing) return existing;
+              return {
+                message: i === totalStamps - 1 ? "Recompensa desbloqueada!" : "Continue juntando!",
+                isPrize: i === totalStamps - 1,
+              };
+            });
       await createCard({
         businessId: businessId as any,
         cardName,
         totalStamps,
         rewardDescription: rewardDesc,
+        stampPrizes: prizes,
       });
       toast.success("Cartão criado!");
       setShowCreate(false);
       setCardName("");
       setRewardDesc("");
       setTotalStamps(8);
+      setStampPrizes([]);
     } catch {
       toast.error("Erro ao criar cartão");
     }
     setCreating(false);
+  };
+
+  const updatePrize = (index: number, message: string, isPrize: boolean) => {
+    const newPrizes = [...stampPrizes];
+    newPrizes[index] = { message, isPrize };
+    setStampPrizes(newPrizes);
   };
 
   return (
@@ -516,12 +539,17 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
                   min={2}
                   max={30}
                   value={totalStamps}
-                  onChange={(e) => setTotalStamps(parseInt(e.target.value) || 8)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 8;
+                    setTotalStamps(val);
+                    // Reset prizes when stamp count changes
+                    setStampPrizes([]);
+                  }}
                   className="clay-input w-full px-4 py-3"
                 />
               </div>
               <div>
-                <label className="text-sm font-semibold mb-1 block">Recompensa</label>
+                <label className="text-sm font-semibold mb-1 block">Recompensa final</label>
                 <input
                   type="text"
                   value={rewardDesc}
@@ -530,6 +558,58 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
                   className="clay-input w-full px-4 py-3"
                 />
               </div>
+
+              {/* Prize configuration */}
+              <div>
+                <label className="text-sm font-semibold mb-2 block">
+                  Prêmios de cada carimbo (opcional)
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Configure o que cada carimbo revela quando o cliente coleta. Se deixar vazio, será um carimbo padrão.
+                </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {Array.from({ length: totalStamps }).map((_, i) => {
+                    const prize = stampPrizes[i];
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-muted-foreground w-6 text-center shrink-0">
+                          {i + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={prize?.message ?? ""}
+                          onChange={(e) =>
+                            updatePrize(i, e.target.value, prize?.isPrize ?? i === totalStamps - 1)
+                          }
+                          placeholder={
+                            i === totalStamps - 1
+                              ? "Mensagem da recompensa"
+                              : "Ex: 10% de desconto, Continue..."
+                          }
+                          className="clay-input flex-1 px-3 py-2 text-sm"
+                        />
+                        <label className="flex items-center gap-1 shrink-0 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={prize?.isPrize ?? (i === totalStamps - 1)}
+                            onChange={(e) => {
+                              const newPrizes = [...stampPrizes];
+                              newPrizes[i] = {
+                                message: prize?.message ?? "",
+                                isPrize: e.target.checked,
+                              };
+                              setStampPrizes(newPrizes);
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-[10px] text-muted-foreground">Premio</span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={handleCreate}
@@ -585,6 +665,7 @@ function LoyaltyCardItem({
     totalStamps: number;
     rewardDescription: string;
     isActive: boolean;
+    stampPrizes?: { message: string; isPrize: boolean }[];
   };
   onDelete: () => void;
 }) {
@@ -597,6 +678,9 @@ function LoyaltyCardItem({
     toast.success("Link copiado!");
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const hasPrizes = card.stampPrizes && card.stampPrizes.length > 0;
+  const prizeCount = card.stampPrizes?.filter((p) => p.isPrize).length ?? 0;
 
   return (
     <div className="clay-card p-5 relative">
@@ -618,22 +702,35 @@ function LoyaltyCardItem({
         </span>
       </div>
 
-      {/* Stamp preview */}
+      {/* Stamp preview with prizes */}
       <div className="flex gap-1.5 my-3">
-        {Array.from({ length: Math.min(card.totalStamps, 12) }).map((_, i) => (
-          <div
-            key={i}
-            className="w-7 h-7 rounded-lg stamp-slot-empty flex items-center justify-center"
-          >
-            {i < card.totalStamps ? null : null}
-          </div>
-        ))}
+        {Array.from({ length: Math.min(card.totalStamps, 12) }).map((_, i) => {
+          const prize = card.stampPrizes?.[i];
+          return (
+            <div
+              key={i}
+              className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
+                prize?.isPrize ? "stamp-slot-reward" : "stamp-slot-empty"
+              }`}
+              title={prize?.message || `Carimbo ${i + 1}`}
+            >
+              {!prize?.isPrize && <span className="text-muted-foreground/30">{i + 1}</span>}
+              {prize?.isPrize && <Star className="w-3 h-3" />}
+            </div>
+          );
+        })}
         {card.totalStamps > 12 && (
           <span className="text-xs text-muted-foreground self-center ml-1">
             +{card.totalStamps - 12}
           </span>
         )}
       </div>
+
+      {hasPrizes && (
+        <p className="text-xs text-muted-foreground mb-3">
+          {prizeCount} prêmio(s) configurado(s) · Cliente revela a cada coleta
+        </p>
+      )}
 
       <div className="flex items-center gap-2 mt-3">
         <button

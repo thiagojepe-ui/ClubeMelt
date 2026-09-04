@@ -8,6 +8,14 @@ export const create = mutation({
     totalStamps: v.number(),
     rewardDescription: v.string(),
     cardName: v.string(),
+    stampPrizes: v.optional(
+      v.array(
+        v.object({
+          message: v.string(),
+          isPrize: v.boolean(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -24,6 +32,7 @@ export const create = mutation({
       rewardDescription: args.rewardDescription,
       cardName: args.cardName,
       isActive: true,
+      stampPrizes: args.stampPrizes,
       createdAt: Date.now(),
     });
   },
@@ -77,6 +86,14 @@ export const update = mutation({
     rewardDescription: v.string(),
     cardName: v.string(),
     isActive: v.boolean(),
+    stampPrizes: v.optional(
+      v.array(
+        v.object({
+          message: v.string(),
+          isPrize: v.boolean(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -95,6 +112,7 @@ export const update = mutation({
       rewardDescription: args.rewardDescription,
       cardName: args.cardName,
       isActive: args.isActive,
+      stampPrizes: args.stampPrizes,
     });
   },
 });

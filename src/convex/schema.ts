@@ -42,6 +42,14 @@ const schema = defineSchema(
       rewardDescription: v.string(),
       cardName: v.string(),
       isActive: v.boolean(),
+      stampPrizes: v.optional(
+        v.array(
+          v.object({
+            message: v.string(),
+            isPrize: v.boolean(),
+          }),
+        ),
+      ),
       createdAt: v.number(),
     }).index("by_business", ["businessId"]),
 
@@ -64,7 +72,8 @@ const schema = defineSchema(
     })
       .index("by_customer", ["customerId"])
       .index("by_loyalty_card", ["loyaltyCardId"])
-      .index("by_business", ["businessId"]),
+      .index("by_business", ["businessId"])
+      .index("by_loyalty_customer", ["loyaltyCardId", "customerId"]),
   },
   {
     schemaValidation: false,

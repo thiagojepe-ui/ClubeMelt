@@ -5,14 +5,14 @@ import {
   Stamp,
   QrCode,
   Users,
-  BarChart3,
-  Smartphone,
   Gift,
   ArrowRight,
   Star,
   Heart,
   Zap,
-  Check,
+  Sparkles,
+  PartyPopper,
+  Link2,
 } from "lucide-react";
 
 export default function Landing() {
@@ -56,7 +56,7 @@ export default function Landing() {
             <div className="inline-flex items-center gap-2 clay-badge bg-clay-peach/50 px-4 py-2 mb-6">
               <Heart className="w-4 h-4 text-[oklch(0.55_0.18_15)]" />
               <span className="text-sm font-semibold text-[oklch(0.35_0.06_15)]">
-                Fidelize seus clientes sem complicação
+                Fidelize seus clientes com surpresas a cada compra
               </span>
             </div>
           </motion.div>
@@ -67,7 +67,7 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6"
           >
-            Cartão fidelidade{" "}
+            Carimbos que{" "}
             <span
               className="bg-clip-text text-transparent"
               style={{
@@ -75,7 +75,7 @@ export default function Landing() {
                   "linear-gradient(135deg, var(--clay-orange), oklch(0.65 0.14 30), var(--clay-blue))",
               }}
             >
-              100% digital
+              surpreendem
             </span>
           </motion.h1>
 
@@ -85,9 +85,9 @@ export default function Landing() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Seus clientes acumulam carimbos pelo celular. Sem papel, sem
-            aplicativo para baixar. Você cria em minutos e acompanha tudo pelo
-            painel de controle.
+            Cada compra vira uma surpresa. Seus clientes abrem o link, coletam
+            carimbos e descobrem prêmios a cada toque. Sem papel, sem
+            aplicativo — pelo celular.
           </motion.p>
 
           <motion.div
@@ -107,7 +107,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Phone mockup section */}
+      {/* Phone mockup — reveal experience */}
       <section className="px-4 pb-20">
         <div className="max-w-5xl mx-auto">
           <motion.div
@@ -116,7 +116,6 @@ export default function Landing() {
             transition={{ duration: 0.7, delay: 0.4 }}
             className="relative"
           >
-            {/* Loyalty card mock */}
             <div className="mx-auto max-w-sm">
               <div className="clay-float p-8 relative overflow-hidden">
                 <div className="absolute -top-20 -right-20 w-48 h-48 rounded-full bg-clay-peach opacity-40 blur-3xl" />
@@ -126,10 +125,10 @@ export default function Landing() {
                     ☕
                   </div>
                   <h3 className="text-xl font-bold mb-1">Café do Centro</h3>
-                  <p className="text-sm text-muted-foreground font-medium">
-                    Cartão Café
+                  <p className="text-xs text-muted-foreground mb-5">
+                    Toque nos selos para descobrir seu prêmio!
                   </p>
-                  <div className="grid grid-cols-5 gap-2 mt-6">
+                  <div className="grid grid-cols-5 gap-2.5">
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                       <motion.div
                         key={n}
@@ -137,10 +136,15 @@ export default function Landing() {
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.6 + n * 0.08, type: "spring" }}
                         className={`stamp-slot ${
-                          n <= 3 ? "stamp-slot-filled" : "stamp-slot-empty"
+                          n <= 2
+                            ? "stamp-slot-filled text-white"
+                            : n === 3
+                            ? "stamp-slot-reward"
+                            : "stamp-slot-empty"
                         } text-xs`}
                       >
-                        {n <= 3 && <Star className="w-4 h-4" />}
+                        {n <= 2 && <Star className="w-4 h-4" />}
+                        {n === 3 && <span className="text-lg">?</span>}
                         {n > 3 && (
                           <span className="text-muted-foreground/30">{n}</span>
                         )}
@@ -148,9 +152,9 @@ export default function Landing() {
                     ))}
                   </div>
                   <div className="mt-5 bg-clay-orange/10 rounded-2xl py-2.5 px-4 clay-badge">
-                    <p className="text-xs text-muted-foreground">Recompensa</p>
+                    <p className="text-xs text-muted-foreground">Próximo prêmio</p>
                     <p className="font-bold text-sm" style={{ color: "var(--clay-orange)" }}>
-                      1 café grátis
+                      10% de desconto
                     </p>
                   </div>
                 </div>
@@ -173,8 +177,7 @@ export default function Landing() {
               Tudo que você precisa
             </h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-              Simplifique a fidelização do seu negócio com ferramentas que cabem
-              no seu bolso.
+              Simplifique a fidelização com surpresas a cada compra.
             </p>
           </motion.div>
 
@@ -217,7 +220,7 @@ export default function Landing() {
               Como funciona
             </h2>
             <p className="text-muted-foreground text-lg">
-              Três passos simples para começar a fidélizar.
+              Três passos simples para fidélizar com surpresa.
             </p>
           </motion.div>
 
@@ -258,11 +261,11 @@ export default function Landing() {
             <div className="relative z-10">
               <div className="text-5xl mb-4">🎉</div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Comece a fidélizar hoje
+                Comece a surpreender hoje
               </h2>
               <p className="text-muted-foreground text-lg mb-8 max-w-lg mx-auto">
-                Crie seu cartão fidelidade em minutos. Sem cartão de crédito, sem
-                compromisso.
+                Crie seu cartão, configure os prêmios e envie o link. Seus
+                clientes vão adorar.
               </p>
               <button
                 onClick={() => navigate(isAuthenticated ? "/dashboard" : "/auth")}
@@ -286,8 +289,8 @@ export default function Landing() {
             <span className="font-bold text-sm">Fideliza</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Cartão fidelidade digital · Feito com ♥ para negócios que fazem a
-            diferença
+            Cartão fidelidade digital com surpresas · Feito com ♥ para negócios
+            que fazem a diferença
           </p>
         </div>
       </footer>
@@ -297,62 +300,63 @@ export default function Landing() {
 
 const features = [
   {
-    icon: <Stamp className="w-6 h-6" />,
-    title: "Cartão digital personalizado",
+    icon: <Sparkles className="w-6 h-6" />,
+    title: "Selo-surpresa a cada compra",
     description:
-      "Crie seu cartão com o nome, cor e identidade do seu negócio. Seus clientes carregam no bolso sem precisar baixar nada.",
+      "Cada carimbo é uma caixa de surpresa. Seus clientes tocam e revelam prêmios, descontos ou mensagens especiais.",
     color: "var(--clay-orange)",
   },
   {
-    icon: <QrCode className="w-6 h-6" />,
-    title: "Acesso por QR Code",
+    icon: <Link2 className="w-6 h-6" />,
+    title: "Link ou QR Code",
     description:
-      "Clientes entram com QR Code ou link. Sem cadastro, sem aplicativo. Simples e rápido.",
+      "Envie o link por WhatsApp ou mostre o QR Code. O cliente se cadastra pelo celular e começa a coletar.",
     color: "var(--clay-blue)",
   },
   {
     icon: <Users className="w-6 h-6" />,
-    title: "Gerencie seus clientes",
+    title: "Cadastro automático",
     description:
-      "Cadastre clientes, busque por nome ou telefone, e acompanhe quem está próximo da recompensa.",
+      "O cliente entra com nome e telefone. Sem cadastro complicado. Você vê tudo no painel de controle.",
     color: "oklch(0.72 0.1 160)",
   },
   {
-    icon: <Zap className="w-6 h-6" />,
-    title: "Carimbos instantâneos",
+    icon: <Gift className="w-6 h-6" />,
+    title: "Prêmios configuráveis",
     description:
-      "Dê carimbos em segundos pelo painel de controle. Compras remotas ou presenciais — tudo sem complicação.",
+      "Defina prêmios reais ou mensagens de incentivo para cada carimbo. Você decide o que cada selo revela.",
     color: "oklch(0.7 0.1 260)",
   },
   {
-    icon: <Gift className="w-6 h-6" />,
-    title: "Recompensas automáticas",
+    icon: <Zap className="w-6 h-6" />,
+    title: "Experiência instantânea",
     description:
-      "Defina a recompensa e a quantidade de carimbos. Quando completar, o cliente ganha o prêmio.",
+      "Sem espera, sem papel. O carimbo é coletado na hora pelo celular com uma animação de revelação.",
     color: "oklch(0.7 0.12 340)",
   },
   {
-    icon: <BarChart3 className="w-6 h-6" />,
-    title: "Acompanhe tudo",
+    icon: <PartyPopper className="w-6 h-6" />,
+    title: "Recompensa final",
     description:
-      "Veja quantos cartões, clientes e carimbos seu negócio acumulou. Dados que importam na palma da mão.",
+      "Quando completa o cartão, o cliente desbloqueia a recompensa principal. Uma celebração automática!",
     color: "oklch(0.6 0.1 220)",
   },
 ];
 
 const steps = [
   {
-    title: "Configure seu negócio",
-    description: "Adicione o nome, cor e ícone do seu estabelecimento em segundos.",
+    title: "Crie seu cartão",
+    description:
+      "Configure o nome, cor, quantidade de carimbos e prêmios de cada selo.",
   },
   {
-    title: "Crie seu cartão fidelidade",
+    title: "Envie o link",
     description:
-      "Defina quantos carimbos o cliente precisa e qual será a recompensa.",
+      "Copie o link ou mostre o QR Code. O cliente se cadastra com nome e telefone.",
   },
   {
-    title: "Compartilhe e fidelize",
+    title: "Cliente coleta e surpreende",
     description:
-      "Envie o QR Code ou link. Seus clientes acessam pelo celular e você dá os carimbos pelo painel.",
+      "A cada compra, o cliente toca e revela o que tem dentro do carimbo!",
   },
 ];
