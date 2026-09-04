@@ -69,6 +69,7 @@ const schema = defineSchema(
       businessId: v.id("businesses"),
       count: v.number(),
       token: v.optional(v.string()),
+      batchToken: v.optional(v.string()),
       revealed: v.optional(v.boolean()),
       revealedAt: v.optional(v.number()),
       createdAt: v.number(),

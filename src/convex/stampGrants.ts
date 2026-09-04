@@ -12,8 +12,8 @@ function generateToken(): string {
 }
 
 /**
- * Create N stamps with unique tokens for a specific customer and card.
- * Returns the created stamps with their tokens and shareable links.
+ * Create N stamps with a shared batch token for a specific customer and card.
+ * Returns the batch token and created stamps.
  */
 export const createStamps = mutation({
   args: {
@@ -42,28 +42,28 @@ export const createStamps = mutation({
       throw new Error("Quantidade deve ser entre 1 e 30");
     }
 
+    const batchToken = generateToken();
     const createdStamps = [];
+
     for (let i = 0; i < args.count; i++) {
-      const token = generateToken();
       const id = await ctx.db.insert("stamps", {
         customerId: args.customerId,
         loyaltyCardId: args.loyaltyCardId,
         businessId: card.businessId,
         count: 1,
-        token,
+        batchToken,
         revealed: false,
         createdAt: Date.now(),
       });
-      createdStamps.push({ id, token });
+      createdStamps.push(id);
     }
 
-    return createdStamps;
+    return { batchToken, stampCount: args.count };
   },
 });
 
 /**
  * Get all stamps for a business, grouped by customer.
- * Returns customer info + their stamps (revealed + unrevealed).
  */
 export const getStampsByCustomer = query({
   args: { businessId: v.id("businesses") },
@@ -76,19 +76,16 @@ export const getStampsByCustomer = query({
       throw new Error("Não autorizado");
     }
 
-    // Get all customers for this business
     const customers = await ctx.db
       .query("customers")
       .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
       .collect();
 
-    // Get all stamps for this business
     const allStamps = await ctx.db
       .query("stamps")
       .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
       .collect();
 
-    // Get all loyalty cards for this business
     const cards = await ctx.db
       .query("loyaltyCards")
       .withIndex("by_business", (q) => q.eq("businessId", args.businessId))
@@ -96,15 +93,18 @@ export const getStampsByCustomer = query({
 
     const cardMap = new Map(cards.map((c) => [c._id, c]));
 
-    // Group stamps by customer
-    const customerMap = new Map<string, {
-      customer: typeof customers[0];
-      stamps: typeof allStamps;
-      revealedCount: number;
-      unrevealedCount: number;
-      cardName: string;
-      totalStamps: number;
-    }>();
+    // Group stamps by customer and loyalty card
+    const customerMap = new Map<
+      string,
+      {
+        customer: (typeof customers)[0];
+        stamps: typeof allStamps;
+        revealedCount: number;
+        unrevealedCount: number;
+        cardName: string;
+        totalStamps: number;
+      }
+    >();
 
     for (const customer of customers) {
       customerMap.set(customer._id, {
@@ -135,7 +135,6 @@ export const getStampsByCustomer = query({
       }
     }
 
-    // Only include customers that have stamps
     return Array.from(customerMap.values()).filter(
       (e) => e.stamps.length > 0,
     );
@@ -143,17 +142,14 @@ export const getStampsByCustomer = query({
 });
 
 /**
- * Get all unrevealed stamps (links) for a specific customer + card.
+ * Get all batch links for a customer on a card.
  */
-export const getUnrevealedStamps = query({
+export const getBatchesByCustomer = query({
   args: {
     customerId: v.id("customers"),
     loyaltyCardId: v.id("loyaltyCards"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
     const stamps = await ctx.db
       .query("stamps")
       .withIndex("by_loyalty_customer", (q) =>
@@ -163,8 +159,38 @@ export const getUnrevealedStamps = query({
       )
       .collect();
 
-    return stamps
-      .filter((s) => !s.revealed && s.token)
-      .map((s) => ({ id: s._id, token: s.token!, createdAt: s.createdAt }));
+    // Group by batchToken
+    const batchMap = new Map<
+      string,
+      {
+        batchToken: string;
+        total: number;
+        revealed: number;
+        pending: number;
+        createdAt: number;
+      }
+    >();
+
+    for (const stamp of stamps) {
+      const bt = stamp.batchToken || stamp.token || "solo";
+      if (!batchMap.has(bt)) {
+        batchMap.set(bt, {
+          batchToken: bt,
+          total: 0,
+          revealed: 0,
+          pending: 0,
+          createdAt: stamp.createdAt,
+        });
+      }
+      const b = batchMap.get(bt)!;
+      b.total++;
+      if (stamp.revealed) {
+        b.revealed++;
+      } else {
+        b.pending++;
+      }
+    }
+
+    return Array.from(batchMap.values());
   },
 });
