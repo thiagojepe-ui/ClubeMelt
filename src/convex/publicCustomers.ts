@@ -122,6 +122,15 @@ export const revealStamp = mutation({
       throw new Error("Todos os carimbos já foram revelados");
     }
 
+    // Prevent reveal within 60 seconds of last reveal (blocks page reload exploit)
+    if (existingStamps.length > 0) {
+      const lastStamp = existingStamps[existingStamps.length - 1];
+      const elapsed = Date.now() - lastStamp.createdAt;
+      if (elapsed < 60_000) {
+        throw new Error("Aguarde antes de coletar outro carimbo");
+      }
+    }
+
     // Pick prize for this position
     const position = totalRevealed;
     const prizes = card.stampPrizes ?? [];

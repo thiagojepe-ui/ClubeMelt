@@ -273,12 +273,21 @@ function CardPhase({
   const [revealingIndex, setRevealingIndex] = useState<number | null>(null);
   const [lastReveal, setLastReveal] = useState<any>(null);
   const [showPrizeModal, setShowPrizeModal] = useState(false);
+  const [cooldownMsg, setCooldownMsg] = useState<string | null>(null);
   const [sessionRevealed, setSessionRevealed] = useState(false);
+
+  // Check server-side: if totalRevealed > 0, customer already has stamps
+  useEffect(() => {
+    if (stampData && stampData.totalRevealed > 0) {
+      setSessionRevealed(true);
+    }
+  }, [stampData]);
 
   const handleReveal = useCallback(
     async (index: number) => {
       if (revealingIndex !== null || !customerId || sessionRevealed) return;
       setRevealingIndex(index);
+      setCooldownMsg(null);
 
       // Short delay for animation
       await new Promise((r) => setTimeout(r, 300));
@@ -291,7 +300,12 @@ function CardPhase({
         setLastReveal(result);
         setShowPrizeModal(true);
         setSessionRevealed(true);
-      } catch {
+      } catch (err: any) {
+        const msg = err?.data?.message || err?.message || "";
+        if (msg.includes("Aguarde")) {
+          setCooldownMsg("Você já coletou um carimbo recentemente. Aguarde um momento ou volte na próxima compra.");
+          setSessionRevealed(true);
+        }
         setRevealingIndex(null);
       }
     },
@@ -416,6 +430,12 @@ function CardPhase({
                     </motion.div>
                   );
                 })}
+              </div>
+            )}
+
+            {cooldownMsg && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm text-center">
+                {cooldownMsg}
               </div>
             )}
 
