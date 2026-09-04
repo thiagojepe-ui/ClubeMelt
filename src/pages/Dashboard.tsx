@@ -659,6 +659,7 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
 function LoyaltyCardItem({
   card,
   onDelete,
+  onEdit,
 }: {
   card: {
     _id: string;
@@ -669,34 +670,8 @@ function LoyaltyCardItem({
     stampPrizes?: { message: string; isPrize: boolean }[];
   };
   onDelete: () => void;
+  onEdit: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
-  const publicUrl = `${window.location.origin}/dashboard`;
-
-  const copyLink = async () => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(publicUrl);
-      } else {
-        // Fallback for non-secure contexts (iframes, HTTP)
-        const textarea = document.createElement("textarea");
-        textarea.value = publicUrl;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-      }
-      setCopied(true);
-      toast.success("Link copiado!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Erro ao copiar link");
-    }
-  };
-
   const hasPrizes = card.stampPrizes && card.stampPrizes.length > 0;
   const prizeCount = card.stampPrizes?.filter((p) => p.isPrize).length ?? 0;
 
@@ -752,18 +727,11 @@ function LoyaltyCardItem({
 
       <div className="flex items-center gap-2 mt-3">
         <button
-          onClick={copyLink}
+          onClick={onEdit}
           className="clay-button-secondary px-3 py-2 text-xs font-semibold flex items-center gap-1.5"
         >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? "Copiado" : "Copiar link"}
-        </button>
-        <button
-          onClick={copyLink}
-          className="clay-button-secondary px-3 py-2 text-xs font-semibold flex items-center gap-1.5"
-        >
-          <QrCode className="w-3.5 h-3.5" />
-          QR Code
+          <Edit3 className="w-3.5 h-3.5" />
+          Editar
         </button>
         <button
           onClick={onDelete}
@@ -951,8 +919,8 @@ function StampsView({ businessId }: { businessId: string }) {
   const [stampCount, setStampCount] = useState(1);
   const [customerSearch, setCustomerSearch] = useState("");
   const [creating, setCreating] = useState(false);
-  const [generatedLinks, setGeneratedLinks] = useState<string[]>([]);
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const filteredCustomers = useMemo(() => {
     const list = customers ?? [];
@@ -972,22 +940,23 @@ function StampsView({ businessId }: { businessId: string }) {
         customerId: selectedCustomer as any,
         count: stampCount,
       });
-      const links = result.map((s: { token: string }) => `${window.location.origin}/stamp/${s.token}`);
-      setGeneratedLinks(links);
-      toast.success(`${stampCount} link(s) gerado(s)!`);
+      const url = `${window.location.origin}/batch/${result.batchToken}`;
+      setGeneratedLink(url);
+      toast.success(`Link para ${stampCount} carimbo(s) gerado!`);
     } catch (err: any) {
-      toast.error(err?.data?.message || "Erro ao gerar links");
+      toast.error(err?.data?.message || "Erro ao gerar link");
     }
     setCreating(false);
   };
 
-  const copyLink = async (url: string, idx: number) => {
+  const copyLink = async () => {
+    if (!generatedLink) return;
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(generatedLink);
       } else {
         const ta = document.createElement("textarea");
-        ta.value = url;
+        ta.value = generatedLink;
         ta.style.position = "fixed";
         ta.style.opacity = "0";
         document.body.appendChild(ta);
@@ -996,9 +965,9 @@ function StampsView({ businessId }: { businessId: string }) {
         document.execCommand("copy");
         document.body.removeChild(ta);
       }
-      setCopiedIdx(idx);
+      setCopiedLink(true);
       toast.success("Link copiado!");
-      setTimeout(() => setCopiedIdx(null), 2000);
+      setTimeout(() => setCopiedLink(false), 2000);
     } catch {
       toast.error("Erro ao copiar");
     }
@@ -1007,7 +976,7 @@ function StampsView({ businessId }: { businessId: string }) {
   const resetForm = () => {
     setSelectedCustomer(null);
     setStampCount(1);
-    setGeneratedLinks([]);
+    setGeneratedLink(null);
   };
 
   return (
@@ -1063,27 +1032,22 @@ function StampsView({ businessId }: { businessId: string }) {
             <button onClick={() => { setStampCount(stampCount + 1); setGeneratedLinks([]); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">+</button>
           </div>
           <button onClick={handleCreate} disabled={creating} className="clay-button bg-primary text-primary-foreground w-full py-3 font-semibold text-base flex items-center justify-center gap-2">
-            {creating ? "Gerando..." : <><Link className="w-5 h-5" /> Gerar {stampCount} link(s)</>}
+            {creating ? "Gerando..." : <><Link className="w-5 h-5" /> Gerar link ({stampCount} carimbo{stampCount > 1 ? 's' : ''})</>}
           </button>
         </motion.div>
       )}
 
-      {/* Generated links */}
-      {generatedLinks.length > 0 && (
+      {/* Generated link */}
+      {generatedLink && (
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Links gerados — envie 1 por compra</p>
-          <div className="space-y-2">
-            {generatedLinks.map((url, i) => (
-              <div key={i} className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3">
-                <span className="text-xs font-bold text-muted-foreground shrink-0">{i + 1}.</span>
-                <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{url}</p>
-                <button onClick={() => copyLink(url, i)} className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0">
-                  {copiedIdx === i ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
-                </button>
-              </div>
-            ))}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Link gerado — cliente coleta 1 por vez</p>
+          <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3 mb-3">
+            <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{generatedLink}</p>
+            <button onClick={copyLink} className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0">
+              {copiedLink ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+            </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-3 text-center">Envie um link por vez ao cliente a cada compra.</p>
+          <p className="text-xs text-muted-foreground text-center">Envie este link ao cliente. Ele clica uma vez para cada carimbo.</p>
         </motion.div>
       )}
 
