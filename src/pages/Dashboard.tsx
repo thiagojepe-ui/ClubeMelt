@@ -672,11 +672,28 @@ function LoyaltyCardItem({
   const [copied, setCopied] = useState(false);
   const publicUrl = `${window.location.origin}/card/${card._id}`;
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(publicUrl);
-    setCopied(true);
-    toast.success("Link copiado!");
-    setTimeout(() => setCopied(false), 2000);
+  const copyLink = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(publicUrl);
+      } else {
+        // Fallback for non-secure contexts (iframes, HTTP)
+        const textarea = document.createElement("textarea");
+        textarea.value = publicUrl;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Erro ao copiar link");
+    }
   };
 
   const hasPrizes = card.stampPrizes && card.stampPrizes.length > 0;

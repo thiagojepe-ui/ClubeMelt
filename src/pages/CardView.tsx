@@ -377,63 +377,58 @@ function CardPhase({
                       }
                     }}
                     disabled={isRevealed || !isCurrent || completed || isRevealing}
-                    className="relative"
+                    className="relative w-full aspect-square"
                   >
-                    {/* Unrevealed stamp */}
-                    {!isRevealed && (
-                      <div
-                        className={`stamp-slot w-full aspect-square flex flex-col items-center justify-center transition-all duration-300 ${
-                          isCurrent && !completed
-                            ? "stamp-slot-empty cursor-pointer hover:scale-105"
-                            : "stamp-slot-empty opacity-40"
-                        } ${isRevealing ? "animate-pulse" : ""}`}
-                        style={
-                          isCurrent && !completed
-                            ? {
-                                borderColor: `${brandColor}40`,
-                                boxShadow: `0 0 0 2px ${brandColor}15, inset 0 2px 4px oklch(0.7 0.01 90 / 0.1)`,
-                              }
-                            : {}
-                        }
-                      >
-                        {isRevealing ? (
-                          <Sparkles
-                            className="w-4 h-4 animate-spin"
-                            style={{ color: brandColor }}
-                          />
-                        ) : isCurrent && !completed ? (
-                          <>
-                            <span className="text-lg font-bold" style={{ color: brandColor }}>
-                              ?
-                            </span>
-                            <span className="text-[8px] text-muted-foreground mt-0.5">
-                              toque
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground/30 text-sm font-bold">
-                            {i + 1}
+                    {/* Unrevealed stamp — always mounted, hidden when revealed */}
+                    <div
+                      className={`stamp-slot w-full h-full absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 ${
+                        isCurrent && !completed
+                          ? "stamp-slot-empty cursor-pointer hover:scale-105"
+                          : "stamp-slot-empty opacity-40"
+                      } ${isRevealing ? "animate-pulse" : ""}`}
+                      style={
+                        isCurrent && !completed
+                          ? {
+                              borderColor: `${brandColor}40`,
+                              boxShadow: `0 0 0 2px ${brandColor}15, inset 0 2px 4px oklch(0.7 0.01 90 / 0.1)`,
+                            }
+                          : {}
+                      }
+                      hidden={isRevealed}
+                    >
+                      {isRevealing ? (
+                        <Sparkles
+                          className="w-4 h-4 animate-spin"
+                          style={{ color: brandColor }}
+                        />
+                      ) : isCurrent && !completed ? (
+                        <>
+                          <span className="text-lg font-bold" style={{ color: brandColor }}>
+                            ?
                           </span>
-                        )}
-                      </div>
-                    )}
+                          <span className="text-[8px] text-muted-foreground mt-0.5">
+                            toque
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground/30 text-sm font-bold">
+                          {i + 1}
+                        </span>
+                      )}
+                    </div>
 
-                    {/* Revealed stamp */}
-                    {isRevealed && (
-                      <motion.div
-                        initial={{ scale: 0.5, rotateY: 180 }}
-                        animate={{ scale: 1, rotateY: 0 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                        className="stamp-slot stamp-slot-filled w-full aspect-square flex flex-col items-center justify-center text-white"
-                        style={{
-                          background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
-                          boxShadow: `0 2px 0 0 oklch(0.6 0.1 30 / 0.8), 0 4px 8px -1px ${brandColor}30`,
-                          borderColor: "transparent",
-                        }}
-                      >
-                        <Star className="w-4 h-4" />
-                      </motion.div>
-                    )}
+                    {/* Revealed stamp — always mounted, hidden when unrevealed */}
+                    <div
+                      className="stamp-slot stamp-slot-filled w-full h-full absolute inset-0 flex flex-col items-center justify-center text-white"
+                      style={{
+                        background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
+                        boxShadow: `0 2px 0 0 oklch(0.6 0.1 30 / 0.8), 0 4px 8px -1px ${brandColor}30`,
+                        borderColor: "transparent",
+                      }}
+                      hidden={!isRevealed}
+                    >
+                      <Star className="w-4 h-4" />
+                    </div>
                   </motion.button>
                 );
               })}
