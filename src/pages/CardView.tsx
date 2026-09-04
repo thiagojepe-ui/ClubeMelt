@@ -361,7 +361,6 @@ function CardPhase({
             </div>
 
             {sessionRevealed ? (
-              /* After reveal: show message + still-visible revealed stamps */
               <div className="text-center mb-5">
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -376,84 +375,48 @@ function CardPhase({
                 </motion.div>
               </div>
             ) : (
-            /* Stamp grid — tappable only before reveal */
-            <div className="grid grid-cols-5 gap-3 mb-5">
-              {Array.from({ length: totalStamps }).map((_, i) => {
-                const isRevealed = i < totalRevealed;
-                const isCurrent = i === totalRevealed && !completed;
-                const isRevealing = revealingIndex === i;
-
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 + i * 0.04, type: "spring" }}
-                    onClick={() => {
-                      if (!isRevealed && isCurrent && !completed && !sessionRevealed) {
-                        handleReveal(i);
-                      }
-                    }}
-                    className={`relative w-full aspect-square ${
-                      !isRevealed && isCurrent && !completed && !sessionRevealed
-                        ? "cursor-pointer"
-                        : ""
-                    }`}
-                  >
-                    {/* Unrevealed stamp — always mounted, hidden when revealed */}
-                    <div
-                      className={`stamp-slot w-full h-full absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 ${
-                        isCurrent && !completed
-                          ? "stamp-slot-empty cursor-pointer hover:scale-105"
-                          : "stamp-slot-empty opacity-40"
-                      } ${isRevealing ? "animate-pulse" : ""}`}
-                      style={
-                        isCurrent && !completed
-                          ? {
-                              borderColor: `${brandColor}40`,
-                              boxShadow: `0 0 0 2px ${brandColor}15, inset 0 2px 4px oklch(0.7 0.01 90 / 0.1)`,
-                            }
-                          : {}
-                      }
-                      hidden={isRevealed}
-                    >
-                      {isRevealing ? (
-                        <Sparkles
-                          className="w-4 h-4 animate-spin"
-                          style={{ color: brandColor }}
-                        />
-                      ) : isCurrent && !completed ? (
-                        <>
-                          <span className="text-lg font-bold" style={{ color: brandColor }}>
-                            ?
-                          </span>
-                          <span className="text-[8px] text-muted-foreground mt-0.5">
-                            toque
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground/30 text-sm font-bold">
-                          {i + 1}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Revealed stamp — always mounted, hidden when unrevealed */}
-                    <div
-                      className="stamp-slot stamp-slot-filled w-full h-full absolute inset-0 flex flex-col items-center justify-center text-white"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
-                        boxShadow: `0 2px 0 0 oklch(0.6 0.1 30 / 0.8), 0 4px 8px -1px ${brandColor}30`,
-                        borderColor: "transparent",
+              <div className="grid grid-cols-5 gap-3 mb-5">
+                {Array.from({ length: totalStamps }).map((_, i) => {
+                  const isRevealed = i < totalRevealed;
+                  const isCurrent = i === totalRevealed && !completed;
+                  const isRevealing = revealingIndex === i;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 + i * 0.04, type: "spring" }}
+                      onClick={() => {
+                        if (!isRevealed && isCurrent && !completed && !sessionRevealed) {
+                          handleReveal(i);
+                        }
                       }}
-                      hidden={!isRevealed}
+                      className={`relative w-full aspect-square ${!isRevealed && isCurrent && !completed && !sessionRevealed ? "cursor-pointer" : ""}`}
                     >
-                      <Star className="w-4 h-4" />
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+                      <div
+                        className={`stamp-slot w-full h-full absolute inset-0 flex flex-col items-center justify-center transition-all duration-300 ${isCurrent && !completed ? "stamp-slot-empty cursor-pointer hover:scale-105" : "stamp-slot-empty opacity-40"} ${isRevealing ? "animate-pulse" : ""}`}
+                        style={isCurrent && !completed ? { borderColor: `${brandColor}40`, boxShadow: `0 0 0 2px ${brandColor}15, inset 0 2px 4px oklch(0.7 0.01 90 / 0.1)` } : {}}
+                        hidden={isRevealed}
+                      >
+                        {isRevealing ? (
+                          <Sparkles className="w-4 h-4 animate-spin" style={{ color: brandColor }} />
+                        ) : isCurrent && !completed ? (
+                          <><span className="text-lg font-bold" style={{ color: brandColor }}>?</span><span className="text-[8px] text-muted-foreground mt-0.5">toque</span></>
+                        ) : (
+                          <span className="text-muted-foreground/30 text-sm font-bold">{i + 1}</span>
+                        )}
+                      </div>
+                      <div
+                        className="stamp-slot stamp-slot-filled w-full h-full absolute inset-0 flex flex-col items-center justify-center text-white"
+                        style={{ background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`, boxShadow: `0 2px 0 0 oklch(0.6 0.1 30 / 0.8), 0 4px 8px -1px ${brandColor}30`, borderColor: "transparent" }}
+                        hidden={!isRevealed}
+                      >
+                        <Star className="w-4 h-4" />
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
             )}
 
             {/* Progress bar */}
