@@ -1,7 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams, useNavigate } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Phone, Loader2, CheckCircle, ArrowRight } from "lucide-react";
 
 export default function CustomerRegister() {
@@ -21,6 +21,16 @@ export default function CustomerRegister() {
   const [error, setError] = useState<string | null>(null);
   const [registered, setRegistered] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+
+  // Auto-redirect to customer area after registration
+  useEffect(() => {
+    if (registered && customerId) {
+      const timer = setTimeout(() => {
+        navigate(`/customer/${customerId}`);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [registered, customerId, navigate]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,20 +92,10 @@ export default function CustomerRegister() {
         <div className="clay-card p-10 text-center max-w-sm relative z-10">
           <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: brandColor }} />
           <h1 className="text-xl font-bold mb-2">Cadastro realizado!</h1>
-          <p className="text-muted-foreground text-sm mb-6">
-            Bem-vindo, {name}! Seu cadastro foi concluído com sucesso.
+          <p className="text-muted-foreground text-sm mb-4">
+            Bem-vindo, {name}! Redirecionando para sua área...
           </p>
-          <p className="text-xs text-muted-foreground mb-6">
-            Aguarde o {business.name} enviar os links para coletar seus carimbos.
-          </p>
-          <button
-            onClick={() => navigate(`/customer/${customerId}`)}
-            className="clay-button px-6 py-3 font-semibold text-sm flex items-center gap-2 mx-auto"
-            style={{ background: brandColor, color: "white" }}
-          >
-            Ver meus carimbos
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
         </div>
       </main>
     );
