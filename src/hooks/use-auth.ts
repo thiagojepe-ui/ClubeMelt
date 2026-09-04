@@ -1,6 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
+import { Id } from "@/convex/_generated/dataModel";
 import { useCallback, useState } from "react";
 
 const ADMIN_SESSION_KEY = "meltcookies_admin_id";
@@ -14,7 +15,7 @@ export function useAuth() {
   const adminId = getStoredAdminId();
   const admin = useQuery(
     api.admins.getAdmin,
-    adminId ? { adminId } : "skip",
+    adminId ? { adminId: adminId as Id<"admins"> } : "skip",
   );
 
   const isLoading = isAuthLoading || (adminId !== null && admin === undefined);
