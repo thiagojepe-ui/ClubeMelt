@@ -6,14 +6,14 @@ import { motion } from "framer-motion";
 import { Star, Gift, PartyPopper, Loader2 } from "lucide-react";
 
 export default function CardView() {
-  const { token } = useParams<{ token: string }>();
+  const { batchToken } = useParams<{ batchToken: string }>();
 
   const data = useQuery(
-    api.publicCustomers.getByToken,
-    token ? { token } : "skip",
+    api.publicCustomers.getByBatchToken,
+    batchToken ? { batchToken } : "skip",
   );
 
-  const revealByToken = useMutation(api.publicCustomers.revealByToken);
+  const revealNext = useMutation(api.publicCustomers.revealNextByBatchToken);
 
   const [revealing, setRevealing] = useState(false);
   const [lastReveal, setLastReveal] = useState<any>(null);
@@ -21,23 +21,23 @@ export default function CardView() {
   const [error, setError] = useState<string | null>(null);
 
   const handleReveal = useCallback(async () => {
-    if (!token || revealing || showPrizeModal) return;
+    if (!batchToken || revealing || showPrizeModal) return;
     setRevealing(true);
     setError(null);
 
     try {
-      const result = await revealByToken({ token });
+      const result = await revealNext({ batchToken });
       setLastReveal(result);
       setShowPrizeModal(true);
     } catch (err: any) {
       setError(err?.data?.message || err?.message || "Erro ao coletar carimbo");
     }
     setRevealing(false);
-  }, [token, revealing, showPrizeModal, revealByToken]);
+  }, [batchToken, revealing, showPrizeModal, revealNext]);
 
   const brandColor = data?.business?.brandColor || "var(--clay-orange)";
 
-  if (!token) {
+  if (!batchToken) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="clay-card p-10 text-center max-w-sm">
@@ -68,20 +68,21 @@ export default function CardView() {
     );
   }
 
-  const { card, business, customer, isRevealed } = data;
+  const { card, business, customer, batchPending, totalRevealed, totalStamps, completed } = data;
 
-  if (isRevealed) {
+  // All stamps in this batch have been collected
+  if (batchPending === 0 && !showPrizeModal) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
         <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-10 text-center max-w-sm relative z-10">
           <div className="text-5xl mb-4">✨</div>
-          <h1 className="text-xl font-bold mb-2">Carimbo já coletado!</h1>
+          <h1 className="text-xl font-bold mb-2">Todos coletados!</h1>
           <p className="text-muted-foreground text-sm mb-4">
-            {customer?.name ? `${customer.name}, você` : "Você"} já coletou este carimbo.
+            {customer?.name ? `${customer.name}, você` : "Você"} já coletou todos os carimbos deste link.
           </p>
           <p className="text-xs text-muted-foreground">
-            Peça um novo link na próxima compra para coletar o próximo selo.
+            Peça um novo link na próxima compra para coletar mais selos.
           </p>
         </motion.div>
       </main>
@@ -107,7 +108,12 @@ export default function CardView() {
           <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-clay-blue opacity-15 blur-3xl" />
           <div className="relative z-10">
             <h2 className="text-lg font-bold mb-1" style={{ color: brandColor }}>{card.cardName}</h2>
-            <p className="text-sm text-muted-foreground mb-6">Toque para coletar seu carimbo!</p>
+            <p className="text-sm text-muted-foreground mb-2">
+              Toque para coletar seu carimbo!
+            </p>
+            <p className="text-xs text-muted-foreground mb-6">
+              {totalRevealed} de {totalStamps} coletados · {batchPending} restante(s) neste link
+            </p>
 
             <motion.div animate={!revealing ? { scale: [1, 1.05, 1] } : { scale: [1, 0.95, 1.1, 0] }} transition={!revealing ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.4 }} className="w-24 h-24 mx-auto mb-6 rounded-3xl stamp-slot-empty flex items-center justify-center" style={{ borderColor: `${brandColor}40`, boxShadow: `0 0 0 3px ${brandColor}15, inset 0 2px 6px oklch(0.7 0.01 90 / 0.1)` }}>
               <span className="text-3xl font-bold" style={{ color: brandColor }}>?</span>
@@ -157,10 +163,15 @@ export default function CardView() {
                     <p className="text-sm font-semibold" style={{ color: brandColor }}>{lastReveal.rewardDescription}</p>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Faltam {lastReveal.totalStamps - lastReveal.totalRevealed} carimbo(s) para sua recompensa</p>
+                  <p className="text-xs text-muted-foreground">
+                    {lastReveal.batchPending > 0
+                      ? `Ainda tem ${lastReveal.batchPending} carimbo(s) neste link! Clique novamente.`
+                      : `Faltam ${lastReveal.totalStamps - lastReveal.totalRevealed} carimbo(s) para sua recompensa.`
+                    }
+                  </p>
                 )}
                 <button onClick={() => setShowPrizeModal(false)} className="clay-button px-6 py-2.5 text-sm font-semibold mt-5" style={{ background: brandColor, color: "white" }}>
-                  {lastReveal.completed ? "Ver recompensa" : "Fechar"}
+                  {lastReveal.completed ? "Ver recompensa" : lastReveal.batchPending > 0 ? "Coletar próximo" : "Fechar"}
                 </button>
               </div>
           </div>

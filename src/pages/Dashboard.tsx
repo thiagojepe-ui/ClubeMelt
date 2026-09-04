@@ -442,8 +442,10 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
   const cards = useQuery(api.loyaltyCards.getByBusiness, { businessId: businessId as any });
   const createCard = useMutation(api.loyaltyCards.create);
   const removeCard = useMutation(api.loyaltyCards.remove);
+  const updateCard = useMutation(api.loyaltyCards.update);
 
   const [showCreate, setShowCreate] = useState(false);
+  const [editingCard, setEditingCard] = useState<string | null>(null);
   const [cardName, setCardName] = useState("");
   const [totalStamps, setTotalStamps] = useState(8);
   const [rewardDesc, setRewardDesc] = useState("");
@@ -477,12 +479,58 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
       });
       toast.success("Cartão criado!");
       setShowCreate(false);
-      setCardName("");
-      setRewardDesc("");
-      setTotalStamps(8);
-      setStampPrizes([]);
+      resetForm();
     } catch {
       toast.error("Erro ao criar cartão");
+    }
+    setCreating(false);
+  };
+
+  const resetForm = () => {
+    setCardName("");
+    setRewardDesc("");
+    setTotalStamps(8);
+    setStampPrizes([]);
+    setEditingCard(null);
+    setShowCreate(false);
+  };
+
+  const handleEdit = (card: any) => {
+    setEditingCard(card._id);
+    setCardName(card.cardName);
+    setTotalStamps(card.totalStamps);
+    setRewardDesc(card.rewardDescription);
+    setStampPrizes(card.stampPrizes || []);
+    setShowCreate(false);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingCard || !cardName.trim() || !rewardDesc.trim()) return;
+    setCreating(true);
+    try {
+      const prizes =
+        stampPrizes.length === totalStamps
+          ? stampPrizes
+          : Array.from({ length: totalStamps }, (_, i) => {
+              const existing = stampPrizes[i];
+              if (existing) return existing;
+              return {
+                message: i === totalStamps - 1 ? "Recompensa desbloqueada!" : "Continue juntando!",
+                isPrize: i === totalStamps - 1,
+              };
+            });
+      await updateCard({
+        loyaltyCardId: editingCard as any,
+        cardName,
+        totalStamps,
+        rewardDescription: rewardDesc,
+        isActive: true,
+        stampPrizes: prizes,
+      });
+      toast.success("Cartão atualizado!");
+      resetForm();
+    } catch {
+      toast.error("Erro ao atualizar cartão");
     }
     setCreating(false);
   };
@@ -492,6 +540,8 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
     newPrizes[index] = { message, isPrize };
     setStampPrizes(newPrizes);
   };
+
+  const formTitle = editingCard ? "Editar cartão" : "Criar novo cartão";
 
   return (
     <motion.div
@@ -519,7 +569,7 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
             exit={{ opacity: 0, height: 0 }}
             className="clay-card p-6 mb-4"
           >
-            <h3 className="font-bold mb-4">Criar novo cartão</h3>
+            <h3 className="font-bold mb-4">{formTitle}</h3>
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-semibold mb-1 block">Nome do cartão</label>
@@ -613,14 +663,14 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
 
               <div className="flex gap-2">
                 <button
-                  onClick={handleCreate}
+                  onClick={editingCard ? handleUpdate : handleCreate}
                   disabled={!cardName.trim() || !rewardDesc.trim() || creating}
                   className="clay-button bg-primary text-primary-foreground px-6 py-2.5 text-sm font-semibold flex-1"
                 >
-                  {creating ? "Criando..." : "Criar cartão"}
+                  {creating ? (editingCard ? "Salvando..." : "Criando...") : (editingCard ? "Salvar alterações" : "Criar cartão")}
                 </button>
                 <button
-                  onClick={() => setShowCreate(false)}
+                  onClick={resetForm}
                   className="clay-button-secondary px-4 py-2.5 text-sm font-semibold"
                 >
                   Cancelar
@@ -648,6 +698,7 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
                 await removeCard({ loyaltyCardId: card._id });
                 toast.success("Cartão removido");
               }}
+              onEdit={() => handleEdit(card)}
             />
           ))}
         </div>
@@ -1009,7 +1060,7 @@ function StampsView({ businessId }: { businessId: string }) {
           </div>
           <div className="max-h-48 overflow-y-auto space-y-1.5">
             {filteredCustomers.map((customer) => (
-              <button key={customer._id} onClick={() => { setSelectedCustomer(customer._id); setGeneratedLinks([]); }} className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${selectedCustomer === customer._id ? "bg-primary/10 ring-2 ring-primary/30" : "hover:bg-secondary/50"}`}>
+              <button key={customer._id} onClick={() => { setSelectedCustomer(customer._id); setGeneratedLink(null); }} className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${selectedCustomer === customer._id ? "bg-primary/10 ring-2 ring-primary/30" : "hover:bg-secondary/50"}`}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ background: "var(--clay-orange)" }}>{customer.name.charAt(0).toUpperCase()}</div>
                 <div className="min-w-0"><p className="font-semibold text-sm truncate">{customer.name}</p>{customer.phone && <p className="text-xs text-muted-foreground">{customer.phone}</p>}</div>
                 {selectedCustomer === customer._id && <Check className="w-4 h-4 text-primary ml-auto shrink-0" />}
@@ -1025,11 +1076,11 @@ function StampsView({ businessId }: { businessId: string }) {
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5 mb-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">3 · Quantos carimbos?</p>
           <div className="flex items-center gap-3 mb-4">
-            <button onClick={() => { setStampCount(Math.max(1, stampCount - 1)); setGeneratedLinks([]); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">−</button>
+            <button onClick={() => { setStampCount(Math.max(1, stampCount - 1)); setGeneratedLink(null); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">−</button>
             <div className="flex-1 text-center">
               <p className="text-2xl font-bold">{stampCount} <span className="text-sm font-normal text-muted-foreground">carimbo(s)</span></p>
             </div>
-            <button onClick={() => { setStampCount(stampCount + 1); setGeneratedLinks([]); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">+</button>
+            <button onClick={() => { setStampCount(stampCount + 1); setGeneratedLink(null); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">+</button>
           </div>
           <button onClick={handleCreate} disabled={creating} className="clay-button bg-primary text-primary-foreground w-full py-3 font-semibold text-base flex items-center justify-center gap-2">
             {creating ? "Gerando..." : <><Link className="w-5 h-5" /> Gerar link ({stampCount} carimbo{stampCount > 1 ? 's' : ''})</>}

@@ -2,6 +2,23 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 /**
+ * Get public business info (no auth required).
+ */
+export const getBusinessPublic = query({
+  args: { businessId: v.id("businesses") },
+  handler: async (ctx, args) => {
+    const business = await ctx.db.get(args.businessId);
+    if (!business) return null;
+    return {
+      _id: business._id,
+      name: business.name,
+      brandColor: business.brandColor,
+      logoEmoji: business.logoEmoji,
+    };
+  },
+});
+
+/**
  * Find customer by phone within a specific business.
  */
 export const findByPhone = query({
