@@ -14,6 +14,8 @@ const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const CardView = lazy(() => import("./pages/CardView.tsx"));
+const CustomerRegister = lazy(() => import("./pages/CustomerRegister.tsx"));
+const CustomerDashboard = lazy(() => import("./pages/CustomerDashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -133,7 +135,9 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               />
-              <Route path="/stamp/:token" element={<CardView />} />
+              <Route path="/batch/:batchToken" element={<CardView />} />
+              <Route path="/register/:businessId" element={<CustomerRegister />} />
+              <Route path="/customer/:customerId" element={<CustomerDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

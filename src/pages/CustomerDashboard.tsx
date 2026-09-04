@@ -2,8 +2,7 @@ import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { motion } from "framer-motion";
-import { Star, Gift, Loader2, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { Star, Gift, Loader2, MousePointerClick } from "lucide-react";
 
 export default function CustomerDashboard() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -13,29 +12,10 @@ export default function CustomerDashboard() {
     customerId ? { customerId: customerId as any } : "skip",
   );
 
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
-
-  const copyLink = async (url: string, idx: number) => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = url;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-      setCopiedIdx(idx);
-      setTimeout(() => setCopiedIdx(null), 2000);
-    } catch {
-      // silent
-    }
-  };
+  const customerInfo = useQuery(
+    api.publicCustomers.getCustomerPublic,
+    customerId ? { customerId: customerId as any } : "skip",
+  );
 
   if (!customerId) {
     return (
@@ -82,8 +62,15 @@ export default function CustomerDashboard() {
 
       <div className="max-w-lg mx-auto relative z-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-          <h1 className="text-2xl font-bold mb-1">Meus Carimbos</h1>
-          <p className="text-muted-foreground text-sm">Acompanhe seus selos e prêmios</p>
+          <div className="w-16 h-16 mx-auto mb-3 rounded-3xl flex items-center justify-center text-3xl clay-badge" style={{ background: `${(customerInfo?.brandColor || "var(--clay-orange)")}18`, boxShadow: `0 4px 12px ${customerInfo?.brandColor || "var(--clay-orange)"}15` }}>
+            {customerInfo?.logoEmoji || "⭐"}
+          </div>
+          <h1 className="text-2xl font-bold mb-1">
+            Olá, {customerInfo?.name?.split(" ")[0] || "cliente"}! 👋
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {customerInfo?.businessName ? `${customerInfo.businessName} · ` : ""}Acompanhe seus selos e prêmios
+          </p>
         </motion.div>
 
         <div className="space-y-4">
@@ -170,24 +157,16 @@ export default function CustomerDashboard() {
                     </div>
                   )}
 
-                  {/* Batch link */}
+                  {/* Collect action */}
                   {batch.batchPending > 0 && (
-                    <div className="bg-secondary/30 rounded-xl p-3">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 font-semibold">
-                        Link para coletar ({batch.batchPending} restante{batch.batchPending > 1 ? 's' : ''})
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[10px] text-muted-foreground truncate flex-1 font-mono">
-                          {`${window.location.origin}/batch/${batch.batchToken}`}
-                        </p>
-                        <button
-                          onClick={() => copyLink(`${window.location.origin}/batch/${batch.batchToken}`, idx)}
-                          className="clay-button-secondary px-2 py-1 text-[10px] font-semibold flex items-center gap-1 shrink-0"
-                        >
-                          {copiedIdx === idx ? <><Check className="w-2.5 h-2.5" /> OK</> : <><Copy className="w-2.5 h-2.5" /> Copiar</>}
-                        </button>
-                      </div>
-                    </div>
+                    <a
+                      href={`/batch/${batch.batchToken}`}
+                      className="clay-button w-full py-3 font-semibold text-sm flex items-center justify-center gap-2"
+                      style={{ background: brandColor, color: "white" }}
+                    >
+                      <MousePointerClick className="w-4 h-4" />
+                      Coletar carimbo{batch.batchPending > 1 ? "s" : ""} ({batch.batchPending} restante{batch.batchPending > 1 ? "s" : ""})
+                    </a>
                   )}
 
                   {batch.batchPending === 0 && (

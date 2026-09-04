@@ -14,7 +14,6 @@ import {
   ChevronRight,
   Gift,
   Settings,
-  QrCode,
   Link,
   Copy,
   Check,
@@ -811,6 +810,54 @@ function CustomersView({ businessId }: { businessId: string }) {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [adding, setAdding] = useState(false);
+  const [copiedReg, setCopiedReg] = useState(false);
+  const [copiedCustomer, setCopiedCustomer] = useState<string | null>(null);
+
+  const registerUrl = `${window.location.origin}/register/${businessId}`;
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopyRegister = async () => {
+    const ok = await copyToClipboard(registerUrl);
+    if (ok) {
+      setCopiedReg(true);
+      toast.success("Link de cadastro copiado!");
+      setTimeout(() => setCopiedReg(false), 2000);
+    } else {
+      toast.error("Erro ao copiar link");
+    }
+  };
+
+  const handleCopyCustomerArea = async (customerId: string) => {
+    const url = `${window.location.origin}/customer/${customerId}`;
+    const ok = await copyToClipboard(url);
+    if (ok) {
+      setCopiedCustomer(customerId);
+      toast.success("Link da área do cliente copiado!");
+      setTimeout(() => setCopiedCustomer(null), 2000);
+    } else {
+      toast.error("Erro ao copiar link");
+    }
+  };
 
   // Local search filter
   const filteredCustomers = useMemo(() => {
@@ -859,6 +906,25 @@ function CustomersView({ businessId }: { businessId: string }) {
           <UserPlus className="w-4 h-4" />
           Novo cliente
         </button>
+      </div>
+
+      {/* Registration link */}
+      <div className="clay-card p-5 mb-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+          Cliente se cadastra sozinho
+        </p>
+        <p className="text-xs text-muted-foreground mb-3">
+          Envie este link para o cliente — ele mesmo informa nome e telefone.
+        </p>
+        <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3">
+          <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{registerUrl}</p>
+          <button
+            onClick={handleCopyRegister}
+            className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0"
+          >
+            {copiedReg ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -948,6 +1014,13 @@ function CustomersView({ businessId }: { businessId: string }) {
                   <p className="text-xs text-muted-foreground">{customer.phone}</p>
                 )}
               </div>
+              <button
+                onClick={() => handleCopyCustomerArea(customer._id)}
+                className="clay-button-secondary px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1 shrink-0"
+                title="Copiar link da área do cliente"
+              >
+                {copiedCustomer === customer._id ? <><Check className="w-3 h-3" /> OK</> : <><Copy className="w-3 h-3" /> Área</>}
+              </button>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
           ))}

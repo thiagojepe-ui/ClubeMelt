@@ -2,6 +2,25 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 /**
+ * Get public customer info (no auth required) for their access area.
+ */
+export const getCustomerPublic = query({
+  args: { customerId: v.id("customers") },
+  handler: async (ctx, args) => {
+    const customer = await ctx.db.get(args.customerId);
+    if (!customer) return null;
+    const business = await ctx.db.get(customer.businessId);
+    return {
+      name: customer.name,
+      phone: customer.phone,
+      businessName: business?.name ?? "",
+      brandColor: business?.brandColor ?? undefined,
+      logoEmoji: business?.logoEmoji ?? undefined,
+    };
+  },
+});
+
+/**
  * Get public business info (no auth required).
  */
 export const getBusinessPublic = query({
@@ -270,9 +289,20 @@ export const revealNextByBatchToken = mutation({
     const card = await ctx.db.get(nextStamp.loyaltyCardId);
     if (!card) throw new Error("Cartão não encontrado");
 
-    // Count how many in this batch are already revealed
-    const batchRevealed = batchStamps.filter((s) => s.revealed).length;
-    const position = batchRevealed; // 0-indexed position of this stamp
+    // Count total revealed for customer+card (across all batches)
+    const allCustomerStamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_loyalty_customer", (q) =>
+        q
+          .eq("loyaltyCardId", nextStamp.loyaltyCardId)
+          .eq("customerId", nextStamp.customerId),
+      )
+      .collect();
+
+    const revealedBefore = allCustomerStamps.filter(
+      (s) => s.revealed && s._id !== nextStamp._id,
+    ).length;
+    const position = revealedBefore; // 0-indexed position on the card
 
     // Get prizes
     const prizes = card.stampPrizes ?? [];
@@ -287,17 +317,7 @@ export const revealNextByBatchToken = mutation({
       revealedAt: Date.now(),
     });
 
-    // Count total revealed for customer+card
-    const allCustomerStamps = await ctx.db
-      .query("stamps")
-      .withIndex("by_loyalty_customer", (q) =>
-        q
-          .eq("loyaltyCardId", nextStamp.loyaltyCardId)
-          .eq("customerId", nextStamp.customerId),
-      )
-      .collect();
-
-    const totalRevealed = allCustomerStamps.filter((s) => s.revealed).length;
+    const totalRevealed = revealedBefore + 1;
     const batchPending = batchStamps.filter(
       (s) => !s.revealed && s._id !== nextStamp._id,
     ).length;
