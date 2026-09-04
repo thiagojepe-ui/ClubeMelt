@@ -2,7 +2,7 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState, useCallback } from "react";
-import { Star, Gift, PartyPopper, Loader2, Home } from "lucide-react";
+import { Star, Gift, PartyPopper, Loader2 } from "lucide-react";
 
 export default function CardView() {
   const { batchToken } = useParams<{ batchToken: string }>();
@@ -230,13 +230,17 @@ export default function CardView() {
         </div>
       </div>
 
-      {/* Prize reveal overlay — positioned absolutely, doesn't affect main flow */}
-      {showPrize && lastReveal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.3)", backdropFilter: "blur(4px)" }}
-          onClick={dismissPrize}
-        >
+      {/* Prize reveal overlay — always in DOM, hidden with display:none to prevent insertBefore errors */}
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{
+          background: "rgba(0,0,0,0.3)",
+          backdropFilter: "blur(4px)",
+          display: showPrize && lastReveal ? "flex" : "none",
+        }}
+        onClick={dismissPrize}
+      >
+        {lastReveal && (
           <div
             className="clay-float p-6 w-full max-w-sm text-center relative overflow-hidden"
             style={{
@@ -316,8 +320,8 @@ export default function CardView() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
