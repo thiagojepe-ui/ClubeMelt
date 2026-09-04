@@ -72,11 +72,17 @@ export const getCustomerProgress = query({
     const relevant = stamps.filter((s) => s.loyaltyCardId === args.loyaltyCardId);
     const totalCount = relevant.reduce((sum, s) => sum + s.count, 0);
 
+    const totalStamps = card.totalStamps;
+    const currentProgress = totalCount % totalStamps;
+    const cyclesCompleted = Math.floor(totalCount / totalStamps);
+
     return {
-      totalStamps: card.totalStamps,
+      totalStamps,
       earnedStamps: totalCount,
-      remaining: Math.max(0, card.totalStamps - totalCount),
-      completed: totalCount >= card.totalStamps,
+      currentProgress,
+      cyclesCompleted,
+      remaining: currentProgress === 0 && totalCount > 0 ? 0 : totalStamps - currentProgress,
+      completed: currentProgress === 0 && totalCount > 0,
     };
   },
 });

@@ -1,7 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { useParams } from "react-router";
-import { Star, Gift, Loader2, MousePointerClick, Cookie } from "lucide-react";
+import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw } from "lucide-react";
 
 export default function CustomerDashboard() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -58,6 +58,9 @@ export default function CustomerDashboard() {
     );
   }
 
+  // Calculate total cycles across all loyalty cards
+  const totalCyclesCompleted = batches.reduce((sum, b) => sum + b.cyclesCompleted, 0);
+
   return (
     <main className="min-h-screen bg-background px-4 py-8">
       <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
@@ -79,6 +82,16 @@ export default function CustomerDashboard() {
             {customerInfo?.businessName ? `${customerInfo.businessName} · ` : ""}
             Acompanhe seus selos e prêmios
           </p>
+          {totalCyclesCompleted > 0 && (
+            <div className="mt-2">
+              <span
+                className="clay-badge px-3 py-1 text-[10px] font-bold inline-flex items-center gap-1"
+                style={{ background: `${brandColor}15`, color: brandColor }}
+              >
+                🏆 {totalCyclesCompleted} ciclo(s) completo(s)
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Batches */}
@@ -87,7 +100,7 @@ export default function CustomerDashboard() {
             const batchBrandColor = batch.brandColor || "var(--clay-orange)";
             const progress =
               batch.totalStamps > 0
-                ? (batch.totalRevealed / batch.totalStamps) * 100
+                ? (batch.currentProgress / batch.totalStamps) * 100
                 : 0;
 
             return (
@@ -123,24 +136,25 @@ export default function CustomerDashboard() {
                         {batch.cardName}
                       </h3>
                     </div>
-                    {batch.completed && (
-                      <div className="clay-badge px-2 py-1 text-[10px] font-bold bg-green-100 text-green-700">
-                        Completo!
+                    {batch.cyclesCompleted > 0 && (
+                      <div className="clay-badge px-2 py-1 text-[10px] font-bold inline-flex items-center gap-1" style={{ background: `${batchBrandColor}15`, color: batchBrandColor }}>
+                        <RotateCcw className="w-3 h-3" />
+                        {batch.cyclesCompleted}x
                       </div>
                     )}
                   </div>
 
-                  {/* Progress bar */}
+                  {/* Progress bar — shows progress within current cycle */}
                   <div className="mb-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-semibold text-muted-foreground">
-                        Progresso
+                        Ciclo atual
                       </span>
                       <span
                         className="text-xs font-bold"
                         style={{ color: batchBrandColor }}
                       >
-                        {batch.totalRevealed}/{batch.totalStamps} selos
+                        {batch.currentProgress}/{batch.totalStamps} selos
                       </span>
                     </div>
                     <div className="w-full h-3 bg-secondary rounded-full overflow-hidden clay-progress-track">
@@ -154,10 +168,10 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
 
-                  {/* Stamp slots */}
+                  {/* Stamp slots — shows current cycle progress */}
                   <div className="flex gap-1.5 my-4 flex-wrap">
                     {Array.from({ length: batch.totalStamps }).map((_, i) => {
-                      const isRevealed = i < batch.totalRevealed;
+                      const isRevealed = i < batch.currentProgress;
                       return (
                         <div
                           key={i}
@@ -202,7 +216,10 @@ export default function CustomerDashboard() {
 
                   {batch.batchPending === 0 && (
                     <p className="text-xs text-muted-foreground text-center">
-                      Todos os carimbos deste lote foram coletados ✨
+                      {batch.cyclesCompleted > 0
+                        ? "Lote completo — aguarde novos links para continuar ✨"
+                        : "Todos os carimbos deste lote foram coletados ✨"
+                      }
                     </p>
                   )}
                 </div>

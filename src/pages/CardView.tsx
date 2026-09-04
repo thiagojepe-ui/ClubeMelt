@@ -18,6 +18,7 @@ export default function CardView() {
   const [lastReveal, setLastReveal] = useState<any>(null);
   const [showPrize, setShowPrize] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const handleReveal = useCallback(async () => {
     if (!batchToken || revealing || showPrize) return;
     setRevealing(true);
@@ -71,10 +72,24 @@ export default function CardView() {
     );
   }
 
-  const { card, business, customer, batchPending, totalRevealed, totalStamps } = data;
+  const { card, business, customer, batchPending, totalStamps, cyclesCompleted } = data;
 
-  // All stamps collected
-  const allDone = batchPending === 0 && !showPrize;
+  // Use lastReveal data for optimistic updates when prize is showing
+  const displayProgress = showPrize && lastReveal
+    ? lastReveal.currentProgress
+    : data.currentProgress;
+  const displayCyclesCompleted = showPrize && lastReveal
+    ? lastReveal.cyclesCompleted
+    : cyclesCompleted;
+  const displayBatchPending = showPrize && lastReveal
+    ? lastReveal.batchPending
+    : batchPending;
+
+  // All stamps in this batch collected
+  const allBatchDone = displayBatchPending === 0 && !showPrize;
+
+  // Check if we just completed a cycle (from the reveal)
+  const justCompleted = showPrize && lastReveal?.justCompleted;
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
@@ -103,11 +118,26 @@ export default function CardView() {
             <h2 className="text-lg font-bold mb-1 text-center" style={{ color: brandColor }}>
               {card.cardName}
             </h2>
+
+            {/* Cycle indicator */}
+            {displayCyclesCompleted > 0 && (
+              <div className="text-center mb-2">
+                <span
+                  className="clay-badge px-3 py-1 text-[10px] font-bold inline-flex items-center gap-1"
+                  style={{ background: `${brandColor}15`, color: brandColor }}
+                >
+                  🏆 Ciclo {displayCyclesCompleted} completo{displayCyclesCompleted > 1 ? "s" : ""}
+                </span>
+              </div>
+            )}
+
             <p className="text-sm text-muted-foreground text-center mb-6">
-              {allDone
-                ? "Todos os carimbos coletados! ✨"
-                : batchPending > 0
-                  ? `Toque para coletar — ${batchPending} restante(s)`
+              {allBatchDone
+                ? displayCyclesCompleted > 0
+                  ? "Todos os carimbos deste lote coletados! Aguarde novos links."
+                  : "Todos os carimbos coletados! ✨"
+                : displayBatchPending > 0
+                  ? `Toque para coletar — ${displayBatchPending} restante(s)`
                   : "Carregando..."
               }
             </p>
@@ -115,13 +145,8 @@ export default function CardView() {
             {/* Stamp slots grid */}
             <div className="flex flex-wrap gap-2 justify-center mb-6">
               {Array.from({ length: totalStamps }).map((_, i) => {
-                // Use lastReveal.totalRevealed for optimistic update when prize is shown,
-                // otherwise use totalRevealed from the reactive query
-                const displayRevealed = showPrize && lastReveal
-                  ? lastReveal.totalRevealed
-                  : totalRevealed;
-                const isRevealed = i < displayRevealed;
-                const isJustRevealed = showPrize && lastReveal && i === displayRevealed - 1;
+                const isRevealed = i < displayProgress;
+                const isJustRevealed = showPrize && lastReveal && i === displayProgress - 1 && lastReveal.justCompleted === false;
 
                 return (
                   <div
@@ -170,13 +195,18 @@ export default function CardView() {
                     <div className="text-3xl mb-2">⭐</div>
                   )}
                   <p className="font-bold text-base mb-1">
-                    {lastReveal.prize?.isPrize ? "Parabéns!" : "Selo coletado!"}
+                    {lastReveal.justCompleted
+                      ? "🎉 Ciclo completo!"
+                      : lastReveal.prize?.isPrize
+                        ? "Parabéns!"
+                        : "Selo coletado!"
+                    }
                   </p>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {lastReveal.prize?.message || "Carimbo coletado!"}
                   </p>
 
-                  {lastReveal.completed ? (
+                  {lastReveal.justCompleted ? (
                     <div className="mt-3 space-y-2">
                       <div className="clay-badge px-4 py-2 inline-flex items-center gap-2 bg-primary text-primary-foreground">
                         <PartyPopper className="w-4 h-4" />
@@ -185,6 +215,9 @@ export default function CardView() {
                       <p className="text-sm font-semibold" style={{ color: brandColor }}>
                         {lastReveal.rewardDescription}
                       </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Continue coletando selos para o próximo prêmio!
+                      </p>
                     </div>
                   ) : lastReveal.batchPending > 0 ? (
                     <p className="text-xs text-muted-foreground mt-2">
@@ -192,7 +225,7 @@ export default function CardView() {
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Faltam {lastReveal.totalStamps - lastReveal.totalRevealed} para sua recompensa.
+                      Faltam {lastReveal.totalStamps - lastReveal.currentProgress} para completar o ciclo.
                     </p>
                   )}
 
@@ -201,14 +234,14 @@ export default function CardView() {
                     className="clay-button px-5 py-2 text-sm font-semibold mt-3"
                     style={{ background: brandColor, color: "white" }}
                   >
-                    {lastReveal.completed ? "🎉 Incrível!" : "Continuar"}
+                    {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
                   </button>
                 </div>
               </div>
             )}
 
             {/* Collect button */}
-            {!allDone && !showPrize && (
+            {!allBatchDone && !showPrize && (
               <button
                 onClick={handleReveal}
                 disabled={revealing}
@@ -224,13 +257,16 @@ export default function CardView() {
               </button>
             )}
 
-            {/* All done state */}
-            {allDone && (
+            {/* Batch complete — waiting for more */}
+            {allBatchDone && (
               <div className="text-center py-2">
                 <div className="text-4xl mb-3">✨</div>
-                <p className="font-bold text-base mb-1">Todos coletados!</p>
+                <p className="font-bold text-base mb-1">Lote completo!</p>
                 <p className="text-sm text-muted-foreground">
-                  {customer?.name ? `${customer.name}, você` : "Você"} já coletou todos os carimbos deste link.
+                  {displayCyclesCompleted > 0
+                    ? `${customer?.name ? customer.name + ", você" : "Você"} já completou ${displayCyclesCompleted} ciclo(s). Aguarde novos links para continuar!`
+                    : `${customer?.name ? customer.name + ", você" : "Você"} coletou todos os carimbos deste link.`
+                  }
                 </p>
               </div>
             )}
@@ -254,6 +290,11 @@ export default function CardView() {
             Recompensa do cartão
           </p>
           <p className="text-sm font-bold">{card.rewardDescription}</p>
+          {displayCyclesCompleted > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {displayCyclesCompleted}x conquistado{displayCyclesCompleted > 1 ? "s" : ""}
+            </p>
+          )}
         </div>
       </div>
     </main>

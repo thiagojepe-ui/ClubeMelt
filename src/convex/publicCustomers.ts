@@ -186,7 +186,8 @@ export const revealByToken = mutation({
       (s) => s.revealed && s._id !== stamp._id,
     ).length;
 
-    const position = alreadyRevealed;
+    // Cycle-aware position: position within current cycle
+    const position = alreadyRevealed % card.totalStamps;
     const prizes = card.stampPrizes ?? [];
     const prize =
       prizes.length > 0
@@ -199,13 +200,18 @@ export const revealByToken = mutation({
     });
 
     const totalRevealed = alreadyRevealed + 1;
+    const currentProgress = totalRevealed % card.totalStamps;
+    const cyclesCompleted = Math.floor(totalRevealed / card.totalStamps);
 
     return {
       position,
       prize,
       totalRevealed,
       totalStamps: card.totalStamps,
-      completed: totalRevealed >= card.totalStamps,
+      currentProgress,
+      cyclesCompleted,
+      completed: currentProgress === 0, // just completed a cycle
+      justCompleted: currentProgress === 0,
       rewardDescription: card.rewardDescription,
       customerName: (await ctx.db.get(stamp.customerId))?.name,
     };
@@ -215,6 +221,7 @@ export const revealByToken = mutation({
 /**
  * Look up a batch by its batch token.
  * Returns all stamps in the batch, card info, business, and customer.
+ * Cycle-aware: tracks currentProgress and cyclesCompleted.
  */
 export const getByBatchToken = query({
   args: { batchToken: v.string() },
@@ -249,6 +256,9 @@ export const getByBatchToken = query({
       .collect();
 
     const totalRevealed = allCustomerStamps.filter((s) => s.revealed).length;
+    const totalStamps = card?.totalStamps ?? 1;
+    const currentProgress = totalRevealed % totalStamps;
+    const cyclesCompleted = Math.floor(totalRevealed / totalStamps);
 
     return {
       batchToken: args.batchToken,
@@ -256,8 +266,10 @@ export const getByBatchToken = query({
       batchRevealed: revealedCount,
       batchPending: pendingCount,
       totalRevealed,
-      totalStamps: card?.totalStamps ?? 0,
-      completed: totalRevealed >= (card?.totalStamps ?? 0),
+      totalStamps,
+      currentProgress,
+      cyclesCompleted,
+      completed: currentProgress === 0 && totalRevealed > 0,
       card,
       business,
       customer,
@@ -267,6 +279,7 @@ export const getByBatchToken = query({
 
 /**
  * Reveal the next unrevealed stamp in a batch. Single-use per click.
+ * Cycle-aware: position uses modular arithmetic so prizes repeat each cycle.
  * The client clicks once per stamp; stays on same page.
  */
 export const revealNextByBatchToken = mutation({
@@ -309,7 +322,9 @@ export const revealNextByBatchToken = mutation({
     const revealedBefore = allCustomerStamps.filter(
       (s) => s.revealed && s._id !== nextStamp._id,
     ).length;
-    const position = revealedBefore; // 0-indexed position on the card
+
+    // Cycle-aware position: use modular arithmetic so prizes repeat each cycle
+    const position = revealedBefore % card.totalStamps;
 
     // Get prizes
     const prizes = card.stampPrizes ?? [];
@@ -325,6 +340,10 @@ export const revealNextByBatchToken = mutation({
     });
 
     const totalRevealed = revealedBefore + 1;
+    const currentProgress = totalRevealed % card.totalStamps;
+    const cyclesCompleted = Math.floor(totalRevealed / card.totalStamps);
+    const justCompleted = currentProgress === 0;
+
     const batchPending = batchStamps.filter(
       (s) => !s.revealed && s._id !== nextStamp._id,
     ).length;
@@ -334,8 +353,10 @@ export const revealNextByBatchToken = mutation({
       prize,
       totalRevealed,
       totalStamps: card.totalStamps,
+      currentProgress,
+      cyclesCompleted,
       batchPending,
-      completed: totalRevealed >= card.totalStamps,
+      justCompleted,
       rewardDescription: card.rewardDescription,
       customerName: (await ctx.db.get(nextStamp.customerId))?.name,
     };
@@ -344,7 +365,7 @@ export const revealNextByBatchToken = mutation({
 
 /**
  * Get all pending batches for a customer across all their cards.
- * Used by the client dashboard.
+ * Used by the client dashboard. Cycle-aware.
  */
 export const getMyBatches = query({
   args: { customerId: v.id("customers") },
@@ -366,6 +387,8 @@ export const getMyBatches = query({
         batchRevealed: number;
         batchPending: number;
         totalRevealed: number;
+        currentProgress: number;
+        cyclesCompleted: number;
         completed: boolean;
         rewardDescription: string;
         businessName: string;
@@ -400,6 +423,8 @@ export const getMyBatches = query({
           batchRevealed: 0,
           batchPending: 0,
           totalRevealed: 0,
+          currentProgress: 0,
+          cyclesCompleted: 0,
           completed: false,
           rewardDescription: card?.rewardDescription ?? "",
           businessName: business?.name ?? "",
@@ -416,7 +441,7 @@ export const getMyBatches = query({
       }
     }
 
-    // Calculate totalRevealed and completed per loyaltyCard
+    // Calculate totalRevealed and cycle info per loyaltyCard
     const cardRevealedMap = new Map<string, number>();
     for (const stamp of allStamps) {
       if (stamp.revealed) {
@@ -427,11 +452,14 @@ export const getMyBatches = query({
 
     for (const b of batchMap.values()) {
       b.totalRevealed = cardRevealedMap.get(b.loyaltyCardId) || 0;
-      b.completed = b.totalRevealed >= b.totalStamps;
+      const totalStamps = b.totalStamps || 1;
+      b.currentProgress = b.totalRevealed % totalStamps;
+      b.cyclesCompleted = Math.floor(b.totalRevealed / totalStamps);
+      b.completed = b.currentProgress === 0 && b.totalRevealed > 0;
     }
 
     return Array.from(batchMap.values()).sort(
-      (a, b) => b.batchRevealed - a.batchRevealed, // show completed last
+      (a, b) => b.batchRevealed - a.batchRevealed, // show batches with more reveals first
     );
   },
 });
@@ -451,6 +479,7 @@ export const revealStamp = mutation({
 
 /**
  * Get a customer's stamp progress for a specific loyalty card.
+ * Cycle-aware: shows progress within current cycle.
  */
 export const getMyStamps = query({
   args: {
@@ -475,11 +504,20 @@ export const getMyStamps = query({
       0,
     );
 
+    const totalStamps = card.totalStamps;
+    const currentProgress = totalRevealed % totalStamps;
+    const cyclesCompleted = Math.floor(totalRevealed / totalStamps);
+    const justCompleted = currentProgress === 0 && totalRevealed > 0;
+    const remaining = totalStamps - currentProgress;
+
     return {
-      totalStamps: card.totalStamps,
+      totalStamps,
       totalRevealed,
-      remaining: Math.max(0, card.totalStamps - totalRevealed),
-      completed: totalRevealed >= card.totalStamps,
+      currentProgress,
+      cyclesCompleted,
+      justCompleted,
+      remaining: justCompleted ? 0 : remaining,
+      completed: justCompleted,
       rewardDescription: card.rewardDescription,
       stampPrizes: card.stampPrizes,
     };
