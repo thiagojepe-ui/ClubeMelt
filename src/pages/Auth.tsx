@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 
 import CookieLogo from "@/components/CookieLogo";
 import { useAuth } from "@/hooks/use-auth";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Loader2, Lock, User, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -40,8 +40,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   const registerAdmin = useMutation(api.admins.register);
   const loginAdmin = useMutation(api.admins.login);
+  const hasAdmin = useQuery(api.admins.hasAdmin);
 
+  // Show register only when no admin exists yet, otherwise always login
   const [mode, setMode] = useState<"register" | "login">("register");
+  useEffect(() => {
+    if (hasAdmin === true) setMode("login");
+  }, [hasAdmin]);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -181,31 +186,34 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 )}
               </button>
 
-              <p className="text-sm text-muted-foreground text-center pt-1">
-                {mode === "register" ? (
-                  <>
-                    Já tem uma conta?{" "}
-                    <button
-                      type="button"
-                      className="text-primary font-semibold hover:underline"
-                      onClick={() => { setMode("login"); setError(null); }}
-                    >
-                      Entrar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    Não tem conta?{" "}
-                    <button
-                      type="button"
-                      className="text-primary font-semibold hover:underline"
-                      onClick={() => { setMode("register"); setError(null); }}
-                    >
-                      Criar conta
-                    </button>
-                  </>
-                )}
-              </p>
+              {/* Only show toggle when no admin exists yet (first access) */}
+              {hasAdmin === false && (
+                <p className="text-sm text-muted-foreground text-center pt-1">
+                  {mode === "register" ? (
+                    <>
+                      Já tem uma conta?{" "}
+                      <button
+                        type="button"
+                        className="text-primary font-semibold hover:underline"
+                        onClick={() => { setMode("login"); setError(null); }}
+                      >
+                        Entrar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Não tem conta?{" "}
+                      <button
+                        type="button"
+                        className="text-primary font-semibold hover:underline"
+                        onClick={() => { setMode("register"); setError(null); }}
+                      >
+                        Criar conta
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
             </CardContent>
           </form>
         </Card>
