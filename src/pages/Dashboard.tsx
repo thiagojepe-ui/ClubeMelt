@@ -130,7 +130,6 @@ export default function Dashboard() {
                 )}
               </AnimatePresence>
             </motion.div>
-          )}
         </AnimatePresence>
       </div>
     </main>
