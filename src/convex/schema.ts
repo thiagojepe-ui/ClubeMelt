@@ -68,12 +68,16 @@ const schema = defineSchema(
       loyaltyCardId: v.id("loyaltyCards"),
       businessId: v.id("businesses"),
       count: v.number(),
+      token: v.optional(v.string()),
+      revealed: v.optional(v.boolean()),
+      revealedAt: v.optional(v.number()),
       createdAt: v.number(),
     })
       .index("by_customer", ["customerId"])
       .index("by_loyalty_card", ["loyaltyCardId"])
       .index("by_business", ["businessId"])
-      .index("by_loyalty_customer", ["loyaltyCardId", "customerId"]),
+      .index("by_loyalty_customer", ["loyaltyCardId", "customerId"])
+      .index("by_token", ["token"]),
   },
   {
     schemaValidation: false,

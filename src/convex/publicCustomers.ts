@@ -3,7 +3,6 @@ import { mutation, query } from "./_generated/server";
 
 /**
  * Find customer by phone within a specific business.
- * Used to detect if the customer already registered.
  */
 export const findByPhone = query({
   args: {
@@ -23,8 +22,7 @@ export const findByPhone = query({
 });
 
 /**
- * Register a new customer by phone. Returns the customer document.
- * If already registered, returns the existing document.
+ * Register a new customer by phone.
  */
 export const register = mutation({
   args: {
@@ -35,7 +33,6 @@ export const register = mutation({
   handler: async (ctx, args) => {
     const normalized = args.phone.replace(/\D/g, "");
 
-    // Check if already registered
     const existing = await ctx.db
       .query("customers")
       .withIndex("by_business_phone", (q) =>
@@ -51,6 +48,105 @@ export const register = mutation({
       createdAt: Date.now(),
     });
     return await ctx.db.get(id);
+  },
+});
+
+/**
+ * Look up a stamp by its unique token.
+ */
+export const getByToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const stamp = await ctx.db
+      .query("stamps")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!stamp) return null;
+
+    const card = await ctx.db.get(stamp.loyaltyCardId);
+    const business = card ? await ctx.db.get(card.businessId) : null;
+    const customer = await ctx.db.get(stamp.customerId);
+
+    return {
+      stamp,
+      card,
+      business,
+      customer,
+      isRevealed: stamp.revealed ?? false,
+    };
+  },
+});
+
+/**
+ * Reveal a stamp by token. Single-use.
+ */
+export const revealByToken = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const stamp = await ctx.db
+      .query("stamps")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!stamp) throw new Error("Link inválido ou expirado");
+
+    if (stamp.revealed) {
+      throw new Error("Este carimbo já foi coletado");
+    }
+
+    const card = await ctx.db.get(stamp.loyaltyCardId);
+    if (!card) throw new Error("Cartão não encontrado");
+
+    const existingStamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_loyalty_customer", (q) =>
+        q
+          .eq("loyaltyCardId", stamp.loyaltyCardId)
+          .eq("customerId", stamp.customerId),
+      )
+      .collect();
+
+    const alreadyRevealed = existingStamps.filter(
+      (s) => s.revealed && s._id !== stamp._id,
+    ).length;
+
+    const position = alreadyRevealed;
+    const prizes = card.stampPrizes ?? [];
+    const prize =
+      prizes.length > 0
+        ? prizes[position % prizes.length]
+        : { message: "Carimbo coletado!", isPrize: false };
+
+    await ctx.db.patch(stamp._id, {
+      revealed: true,
+      revealedAt: Date.now(),
+    });
+
+    const totalRevealed = alreadyRevealed + 1;
+
+    return {
+      position,
+      prize,
+      totalRevealed,
+      totalStamps: card.totalStamps,
+      completed: totalRevealed >= card.totalStamps,
+      rewardDescription: card.rewardDescription,
+      customerName: (await ctx.db.get(stamp.customerId))?.name,
+    };
+  },
+});
+
+/**
+ * @deprecated Old stamp-by-count API, kept for dashboard backward compat.
+ */
+export const revealStamp = mutation({
+  args: {
+    customerId: v.id("customers"),
+    loyaltyCardId: v.id("loyaltyCards"),
+  },
+  handler: async () => {
+    throw new Error("Este método foi descontinuado. Use links de token.");
   },
 });
 
@@ -75,7 +171,10 @@ export const getMyStamps = query({
       )
       .collect();
 
-    const totalRevealed = stamps.reduce((sum, s) => sum + s.count, 0);
+    const totalRevealed = stamps.reduce(
+      (sum, s) => (s.revealed ? sum + s.count : sum),
+      0,
+    );
 
     return {
       totalStamps: card.totalStamps,
@@ -84,77 +183,6 @@ export const getMyStamps = query({
       completed: totalRevealed >= card.totalStamps,
       rewardDescription: card.rewardDescription,
       stampPrizes: card.stampPrizes,
-    };
-  },
-});
-
-/**
- * Reveal one stamp. Picks the next prize from the card's stampPrizes array.
- */
-export const revealStamp = mutation({
-  args: {
-    customerId: v.id("customers"),
-    loyaltyCardId: v.id("loyaltyCards"),
-  },
-  handler: async (ctx, args) => {
-    const card = await ctx.db.get(args.loyaltyCardId);
-    if (!card) throw new Error("Cartão não encontrado");
-
-    const customer = await ctx.db.get(args.customerId);
-    if (!customer) throw new Error("Cliente não encontrado");
-    if (customer.businessId !== card.businessId) {
-      throw new Error("Cliente não pertence a este negócio");
-    }
-
-    // Count already revealed stamps
-    const existingStamps = await ctx.db
-      .query("stamps")
-      .withIndex("by_loyalty_customer", (q) =>
-        q
-          .eq("loyaltyCardId", args.loyaltyCardId)
-          .eq("customerId", args.customerId),
-      )
-      .collect();
-
-    const totalRevealed = existingStamps.reduce((sum, s) => sum + s.count, 0);
-
-    if (totalRevealed >= card.totalStamps) {
-      throw new Error("Todos os carimbos já foram revelados");
-    }
-
-    // Prevent reveal within 60 seconds of last reveal (blocks page reload exploit)
-    if (existingStamps.length > 0) {
-      const lastStamp = existingStamps[existingStamps.length - 1];
-      const elapsed = Date.now() - lastStamp.createdAt;
-      if (elapsed < 60_000) {
-        throw new Error("Aguarde antes de coletar outro carimbo");
-      }
-    }
-
-    // Pick prize for this position
-    const position = totalRevealed;
-    const prizes = card.stampPrizes ?? [];
-    const prize =
-      prizes.length > 0
-        ? prizes[position % prizes.length]
-        : { message: "Carimbo coletado!", isPrize: false };
-
-    // Create stamp doc
-    await ctx.db.insert("stamps", {
-      customerId: args.customerId,
-      loyaltyCardId: args.loyaltyCardId,
-      businessId: card.businessId,
-      count: 1,
-      createdAt: Date.now(),
-    });
-
-    return {
-      position,
-      prize,
-      totalRevealed: totalRevealed + 1,
-      totalStamps: card.totalStamps,
-      completed: totalRevealed + 1 >= card.totalStamps,
-      rewardDescription: card.rewardDescription,
     };
   },
 });

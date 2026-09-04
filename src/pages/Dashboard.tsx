@@ -15,6 +15,7 @@ import {
   Gift,
   Settings,
   QrCode,
+  Link,
   Copy,
   Check,
   Trash2,
@@ -670,7 +671,7 @@ function LoyaltyCardItem({
   onDelete: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const publicUrl = `${window.location.origin}/card/${card._id}`;
+  const publicUrl = `${window.location.origin}/dashboard`;
 
   const copyLink = async () => {
     try {
@@ -942,218 +943,170 @@ function CustomersView({ businessId }: { businessId: string }) {
 function StampsView({ businessId }: { businessId: string }) {
   const cards = useQuery(api.loyaltyCards.getByBusiness, { businessId: businessId as any });
   const customers = useQuery(api.customers.getAll, { businessId: businessId as any });
-  const addStamp = useMutation(api.stamps.add);
+  const stampData = useQuery(api.stampGrants.getStampsByCustomer, { businessId: businessId as any });
+  const createStamps = useMutation(api.stampGrants.createStamps);
 
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [stampCount, setStampCount] = useState(1);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [giving, setGiving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [generatedLinks, setGeneratedLinks] = useState<string[]>([]);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const filteredCustomers = useMemo(() => {
     const list = customers ?? [];
     if (!customerSearch.trim()) return list;
     const term = customerSearch.toLowerCase().trim();
     return list.filter(
-      (c) =>
-        c.name.toLowerCase().includes(term) ||
-        (c.phone && c.phone.includes(term.replace(/\D/g, ""))),
+      (c) => c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term.replace(/\D/g, ""))),
     );
   }, [customers, customerSearch]);
 
-  const handleGiveStamp = async () => {
+  const handleCreate = async () => {
     if (!selectedCard || !selectedCustomer || stampCount < 1) return;
-    setGiving(true);
+    setCreating(true);
     try {
-      await addStamp({
+      const result = await createStamps({
         loyaltyCardId: selectedCard as any,
         customerId: selectedCustomer as any,
         count: stampCount,
       });
-      toast.success(`${stampCount} carimbo(s) adicionado(s)!`);
-      setSelectedCustomer(null);
-      setStampCount(1);
-      setCustomerSearch("");
-    } catch {
-      toast.error("Erro ao adicionar carimbo");
+      const links = result.map((s: { token: string }) => `${window.location.origin}/stamp/${s.token}`);
+      setGeneratedLinks(links);
+      toast.success(`${stampCount} link(s) gerado(s)!`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Erro ao gerar links");
     }
-    setGiving(false);
+    setCreating(false);
   };
 
-  const selectedCardData = cards?.find((c) => c._id === selectedCard);
-  const selectedCustomerData = customers?.find((c) => c._id === selectedCustomer);
+  const copyLink = async (url: string, idx: number) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopiedIdx(idx);
+      toast.success("Link copiado!");
+      setTimeout(() => setCopiedIdx(null), 2000);
+    } catch {
+      toast.error("Erro ao copiar");
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedCustomer(null);
+    setStampCount(1);
+    setGeneratedLinks([]);
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="mt-6"
-    >
-      <h2 className="text-lg font-bold mb-4">Dar Carimbos</h2>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mt-6">
+      <h2 className="text-lg font-bold mb-4">Gerar Links de Carimbo</h2>
 
       {/* Step 1: Select card */}
       <div className="clay-card p-5 mb-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          1 · Escolha o cartão
-        </p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">1 · Escolha o cartão</p>
         {!cards || cards.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Crie um cartão fidelidade primeiro.
-          </p>
+          <p className="text-sm text-muted-foreground">Crie um cartão fidelidade primeiro.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {cards
-              .filter((c) => c.isActive)
-              .map((card) => (
-                <button
-                  key={card._id}
-                  onClick={() => setSelectedCard(card._id)}
-                  className={`clay-badge px-4 py-2.5 text-sm font-semibold transition-all ${
-                    selectedCard === card._id
-                      ? "bg-primary text-primary-foreground ring-2 ring-primary/30"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {card.cardName}
-                  <span className="ml-1 text-xs opacity-70">
-                    ({card.totalStamps} selos)
-                  </span>
-                </button>
-              ))}
+            {cards.filter((c) => c.isActive).map((card) => (
+              <button key={card._id} onClick={() => { setSelectedCard(card._id); resetForm(); }} className={`clay-badge px-4 py-2.5 text-sm font-semibold transition-all ${selectedCard === card._id ? "bg-primary text-primary-foreground ring-2 ring-primary/30" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+                {card.cardName} <span className="ml-1 text-xs opacity-70">({card.totalStamps} selos)</span>
+              </button>
+            ))}
           </div>
         )}
       </div>
 
       {/* Step 2: Search and select customer */}
       {selectedCard && (
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="clay-card p-5 mb-4"
-        >
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            2 · Busque o cliente
-          </p>
+        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5 mb-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">2 · Busque o cliente</p>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={customerSearch}
-              onChange={(e) => setCustomerSearch(e.target.value)}
-              placeholder="Buscar por nome ou telefone..."
-              className="clay-input w-full pl-10 pr-4 py-3"
-            />
+            <input type="text" value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} placeholder="Buscar por nome ou telefone..." className="clay-input w-full pl-10 pr-4 py-3" />
           </div>
           <div className="max-h-48 overflow-y-auto space-y-1.5">
             {filteredCustomers.map((customer) => (
-              <button
-                key={customer._id}
-                onClick={() => setSelectedCustomer(customer._id)}
-                className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
-                  selectedCustomer === customer._id
-                    ? "bg-primary/10 ring-2 ring-primary/30"
-                    : "hover:bg-secondary/50"
-                }`}
-              >
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                  style={{ background: "var(--clay-orange)" }}
-                >
-                  {customer.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate">{customer.name}</p>
-                  {customer.phone && (
-                    <p className="text-xs text-muted-foreground">{customer.phone}</p>
-                  )}
-                </div>
-                {selectedCustomer === customer._id && (
-                  <Check className="w-4 h-4 text-primary ml-auto shrink-0" />
-                )}
+              <button key={customer._id} onClick={() => { setSelectedCustomer(customer._id); setGeneratedLinks([]); }} className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${selectedCustomer === customer._id ? "bg-primary/10 ring-2 ring-primary/30" : "hover:bg-secondary/50"}`}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ background: "var(--clay-orange)" }}>{customer.name.charAt(0).toUpperCase()}</div>
+                <div className="min-w-0"><p className="font-semibold text-sm truncate">{customer.name}</p>{customer.phone && <p className="text-xs text-muted-foreground">{customer.phone}</p>}</div>
+                {selectedCustomer === customer._id && <Check className="w-4 h-4 text-primary ml-auto shrink-0" />}
               </button>
             ))}
-            {filteredCustomers.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {customerSearch
-                  ? "Nenhum cliente encontrado"
-                  : "Nenhum cliente cadastrado"}
-              </p>
-            )}
+            {filteredCustomers.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">{customerSearch ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}</p>}
           </div>
         </motion.div>
       )}
 
-      {/* Step 3: Set count and confirm */}
+      {/* Step 3: Set count and generate */}
       {selectedCard && selectedCustomer && (
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="clay-card p-5 mb-4"
-        >
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            3 · Quantos carimbos?
-          </p>
-
-          {/* Preview */}
-          {selectedCardData && selectedCustomerData && (
-            <div className="bg-secondary/50 rounded-2xl p-4 mb-4">
-              <p className="text-sm font-semibold">
-                {selectedCustomerData.name} → {selectedCardData.cardName}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {selectedCardData.totalStamps} selos para: {selectedCardData.rewardDescription}
-              </p>
-            </div>
-          )}
-
+        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5 mb-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">3 · Quantos carimbos?</p>
           <div className="flex items-center gap-3 mb-4">
-            <button
-              onClick={() => setStampCount(Math.max(1, stampCount - 1))}
-              className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center"
-            >
-              −
-            </button>
+            <button onClick={() => { setStampCount(Math.max(1, stampCount - 1)); setGeneratedLinks([]); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">−</button>
             <div className="flex-1 text-center">
-              <input
-                type="range"
-                min={1}
-                max={selectedCardData?.totalStamps ?? 10}
-                value={stampCount}
-                onChange={(e) => setStampCount(parseInt(e.target.value))}
-                className="w-full accent-primary"
-              />
-              <p className="text-2xl font-bold mt-1">
-                {stampCount} <span className="text-sm font-normal text-muted-foreground">carimbo(s)</span>
-              </p>
+              <p className="text-2xl font-bold">{stampCount} <span className="text-sm font-normal text-muted-foreground">carimbo(s)</span></p>
             </div>
-            <button
-              onClick={() =>
-                setStampCount(
-                  Math.min(selectedCardData?.totalStamps ?? 10, stampCount + 1),
-                )
-              }
-              className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center"
-            >
-              +
-            </button>
+            <button onClick={() => { setStampCount(stampCount + 1); setGeneratedLinks([]); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">+</button>
           </div>
-
-          <button
-            onClick={handleGiveStamp}
-            disabled={giving}
-            className="clay-button bg-primary text-primary-foreground w-full py-3 font-semibold text-base flex items-center justify-center gap-2"
-          >
-            {giving ? (
-              "Adicionando..."
-            ) : (
-              <>
-                <Gift className="w-5 h-5" />
-                Dar {stampCount} carimbo(s)
-              </>
-            )}
+          <button onClick={handleCreate} disabled={creating} className="clay-button bg-primary text-primary-foreground w-full py-3 font-semibold text-base flex items-center justify-center gap-2">
+            {creating ? "Gerando..." : <><Link className="w-5 h-5" /> Gerar {stampCount} link(s)</>}
           </button>
         </motion.div>
+      )}
+
+      {/* Generated links */}
+      {generatedLinks.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Links gerados — envie 1 por compra</p>
+          <div className="space-y-2">
+            {generatedLinks.map((url, i) => (
+              <div key={i} className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3">
+                <span className="text-xs font-bold text-muted-foreground shrink-0">{i + 1}.</span>
+                <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{url}</p>
+                <button onClick={() => copyLink(url, i)} className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0">
+                  {copiedIdx === i ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3 text-center">Envie um link por vez ao cliente a cada compra.</p>
+        </motion.div>
+      )}
+
+      {/* Existing stamps overview */}
+      {stampData && stampData.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-sm font-bold text-muted-foreground mb-3">Carimbos já gerados</h3>
+          <div className="space-y-2">
+            {stampData.map((entry) => (
+              <div key={entry.customer._id} className="clay-card p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ background: "var(--clay-orange)" }}>{entry.customer.name.charAt(0).toUpperCase()}</div>
+                  <div className="flex-1"><p className="font-semibold text-sm">{entry.customer.name}</p><p className="text-xs text-muted-foreground">{entry.cardName}</p></div>
+                  <div className="text-right"><p className="text-sm font-bold" style={{ color: "var(--clay-orange)" }}>{entry.revealedCount}/{entry.totalStamps}</p><p className="text-[10px] text-muted-foreground">coletados</p></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {entry.unrevealedCount > 0 && <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700">{entry.unrevealedCount} link(s) pendente(s)</span>}
+                  {entry.revealedCount >= entry.totalStamps && <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700">Completo!</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </motion.div>
   );

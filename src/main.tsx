@@ -133,7 +133,7 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               />
-              <Route path="/card/:cardId" element={<CardView />} />
+              <Route path="/stamp/:token" element={<CardView />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
