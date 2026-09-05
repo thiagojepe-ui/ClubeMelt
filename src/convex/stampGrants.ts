@@ -43,6 +43,7 @@ export const createStamps = mutation({
     }
 
     const batchToken = generateToken();
+    const now = Date.now();
     const createdStamps = [];
 
     for (let i = 0; i < args.count; i++) {
@@ -52,8 +53,9 @@ export const createStamps = mutation({
         businessId: card.businessId,
         count: 1,
         batchToken,
-        revealed: false,
-        createdAt: Date.now(),
+        revealed: true,
+        revealedAt: now,
+        createdAt: now,
       });
       createdStamps.push(id);
     }

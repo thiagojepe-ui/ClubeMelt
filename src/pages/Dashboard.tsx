@@ -823,6 +823,7 @@ function StampsView({ businessId }: { businessId: string }) {
   const [creating, setCreating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
 
   const filteredCustomers = useMemo(() => {
     const list = customers ?? [];
@@ -837,14 +838,15 @@ function StampsView({ businessId }: { businessId: string }) {
     if (!selectedCard || !selectedCustomer || stampCount < 1) return;
     setCreating(true);
     try {
-      const result = await createStamps({
+      await createStamps({
         loyaltyCardId: selectedCard as any,
         customerId: selectedCustomer as any,
         count: stampCount,
       });
-      const url = `${window.location.origin}/batch/${result.batchToken}`;
+      const url = `${window.location.origin}/customer/${selectedCustomer}`;
       setGeneratedLink(url);
-      toast.success(`Link para ${stampCount} carimbo(s) gerado!`);
+      setCreatedCustomerId(selectedCustomer);
+      toast.success(`${stampCount} carimbo(s) adicionado(s) ao cliente!`);
     } catch (err: any) {
       toast.error(err?.data?.message || "Erro ao gerar link");
     }
@@ -879,6 +881,7 @@ function StampsView({ businessId }: { businessId: string }) {
     setSelectedCustomer(null);
     setStampCount(1);
     setGeneratedLink(null);
+    setCreatedCustomerId(null);
   };
 
   return (
@@ -942,14 +945,14 @@ function StampsView({ businessId }: { businessId: string }) {
       {/* Generated link */}
       {generatedLink && (
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Link gerado — cliente coleta 1 por vez</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Selo(s) adicionado(s)! Envie o link da área do cliente</p>
           <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3 mb-3">
             <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{generatedLink}</p>
             <button onClick={copyLink} className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0">
               {copiedLink ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground text-center">Envie este link ao cliente. Ele clica uma vez para cada carimbo.</p>
+          <p className="text-xs text-muted-foreground text-center">Envie este link ao cliente. Os selos já aparecem na área dele!</p>
         </motion.div>
       )}
 

@@ -265,26 +265,21 @@ function CurrentCard({
           })}
         </div>
 
-        {/* Collect action */}
-        {batch.batchPending > 0 && (
-          <a
-            href={`/batch/${batch.batchToken}`}
-            className="clay-button w-full py-3 font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ background: cardBrandColor, color: "white" }}
-          >
-            <MousePointerClick className="w-4 h-4" />
-            Coletar selo{batch.batchPending > 1 ? "s" : ""}{" "}
-            ({batch.batchPending} restante{batch.batchPending > 1 ? "s" : ""})
-          </a>
+        {/* Progress info */}
+        {!batch.completed && (
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Faltam {batch.totalStamps - batch.currentProgress} para completar o cartão e receber o prêmio!
+          </p>
         )}
 
-        {batch.batchPending === 0 && (
-          <p className="text-xs text-muted-foreground text-center">
-            {batch.cyclesCompleted > 0
-              ? "Lote completo — aguarde novos links para continuar ✨"
-              : "Todos os carimbos deste lote foram coletados ✨"
-            }
-          </p>
+        {batch.completed && (
+          <div className="text-center mt-2">
+            <div className="text-3xl mb-2">🎉</div>
+            <p className="text-sm font-bold mb-1">Cartão completo!</p>
+            <p className="text-xs text-muted-foreground">
+              Continue acumulando selos para o próximo prêmio!
+            </p>
+          </div>
         )}
       </div>
     </div>
