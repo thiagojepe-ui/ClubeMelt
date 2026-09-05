@@ -38,6 +38,73 @@ export const upsert = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    customerId: v.id("customers"),
+    name: v.string(),
+    phone: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const customer = await ctx.db.get(args.customerId);
+    if (!customer) throw new Error("Customer not found");
+
+    const business = await ctx.db.get(customer.businessId);
+    if (!business || business.userId !== userId) {
+      throw new Error("Not authorized");
+    }
+
+    const normalized = args.phone ? args.phone.replace(/\D/g, "") : undefined;
+
+    // Prevent duplicate phones within the same business
+    if (normalized) {
+      const existing = await ctx.db
+        .query("customers")
+        .withIndex("by_business_phone", (q) =>
+          q.eq("businessId", customer.businessId).eq("phone", normalized),
+        )
+        .first();
+      if (existing && existing._id !== customer._id) {
+        throw new Error("Já existe um cliente com este telefone");
+      }
+    }
+
+    await ctx.db.patch(args.customerId, {
+      name: args.name,
+      phone: normalized,
+    });
+  },
+});
+
+export const remove = mutation({
+  args: { customerId: v.id("customers") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const customer = await ctx.db.get(args.customerId);
+    if (!customer) throw new Error("Customer not found");
+
+    const business = await ctx.db.get(customer.businessId);
+    if (!business || business.userId !== userId) {
+      throw new Error("Not authorized");
+    }
+
+    // Remove the customer's stamps to keep progress data consistent
+    const stamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_customer", (q) => q.eq("customerId", args.customerId))
+      .collect();
+    for (const stamp of stamps) {
+      await ctx.db.delete(stamp._id);
+    }
+
+    await ctx.db.delete(args.customerId);
+  },
+});
+
 export const search = query({
   args: {
     businessId: v.id("businesses"),

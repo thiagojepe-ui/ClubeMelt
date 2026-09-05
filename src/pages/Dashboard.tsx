@@ -19,10 +19,41 @@ import {
   UserPlus,
   Zap,
   Star,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 type DashboardView = "overview" | "setup" | "cards" | "customers" | "stamps";
+
+/* Shared clipboard helper — the async Clipboard API can be blocked inside
+   iframes (NotAllowedError), so always keep a legacy execCommand fallback. */
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to the legacy fallback
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export default function Dashboard() {
   const { signOut } = useAuth();
@@ -581,6 +612,8 @@ function LoyaltyCardItem({
 function CustomersView({ businessId }: { businessId: string }) {
   const allCustomers = useQuery(api.customers.getAll, { businessId: businessId as any });
   const upsertCustomer = useMutation(api.customers.upsert);
+  const updateCustomer = useMutation(api.customers.update);
+  const removeCustomer = useMutation(api.customers.remove);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -588,32 +621,16 @@ function CustomersView({ businessId }: { businessId: string }) {
   const [newPhone, setNewPhone] = useState("");
   const [adding, setAdding] = useState(false);
   const [copiedReg, setCopiedReg] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const registerUrl = `${window.location.origin}/register/${businessId}`;
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   const handleCopyRegister = async () => {
-    const ok = await copyToClipboard(registerUrl);
+    const ok = await copyTextToClipboard(registerUrl);
     if (ok) {
       setCopiedReg(true);
       toast.success("Link de cadastro copiado!");
@@ -652,6 +669,53 @@ function CustomersView({ businessId }: { businessId: string }) {
       toast.error("Erro ao cadastrar cliente");
     }
     setAdding(false);
+  };
+
+  const startEdit = (customer: { _id: string; name: string; phone?: string }) => {
+    setEditingId(customer._id);
+    setEditName(customer.name);
+    setEditPhone(customer.phone ?? "");
+    setConfirmDeleteId(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditPhone("");
+  };
+
+  const handleUpdate = async () => {
+    if (!editingId || !editName.trim()) return;
+    setSavingId(editingId);
+    try {
+      await updateCustomer({
+        customerId: editingId as any,
+        name: editName.trim(),
+        phone: editPhone.trim() || undefined,
+      });
+      toast.success("Cliente atualizado!");
+      cancelEdit();
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || "Erro ao atualizar cliente");
+    }
+    setSavingId(null);
+  };
+
+  const handleDelete = async (customerId: string) => {
+    if (confirmDeleteId !== customerId) {
+      setConfirmDeleteId(customerId);
+      return;
+    }
+    setSavingId(customerId);
+    try {
+      await removeCustomer({ customerId: customerId as any });
+      toast.success("Cliente removido");
+      setConfirmDeleteId(null);
+      if (editingId === customerId) cancelEdit();
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || "Erro ao remover cliente");
+    }
+    setSavingId(null);
   };
 
   return (
@@ -739,7 +803,11 @@ function CustomersView({ businessId }: { businessId: string }) {
                   disabled={!newName.trim() || adding}
                   className="clay-button bg-primary text-primary-foreground px-6 py-2.5 text-sm font-semibold flex-1"
                 >
-                  {adding ? "Cadastrando..." : "Cadastrar"}
+                  {adding ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Cadastrar"
+                  )}
                 </button>
                 <button
                   onClick={() => setShowAdd(false)}
@@ -765,22 +833,89 @@ function CustomersView({ businessId }: { businessId: string }) {
       ) : (
         <div className="space-y-2">
           {filteredCustomers.map((customer) => (
-            <div key={customer._id} className="clay-card p-4 flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                style={{ background: "var(--clay-orange)" }}
-              >
-                {customer.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{customer.name}</p>
-                {customer.phone && (
-                  <p className="text-xs text-muted-foreground">{customer.phone}</p>
-                )}
-              </div>
-              <span className="text-[11px] text-muted-foreground shrink-0">
-                Usa o link único acima
-              </span>
+            <div key={customer._id} className="clay-card p-4">
+              {editingId === customer._id ? (
+                <div className="space-y-3">
+                  <h3 className="font-bold text-sm">Editar cliente</h3>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Nome do cliente"
+                    className="clay-input w-full px-4 py-2.5 text-sm"
+                  />
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="Telefone (opcional)"
+                    className="clay-input w-full px-4 py-2.5 text-sm"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Ao alterar o telefone, o cliente deverá entrar novamente com o novo número.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleUpdate}
+                      disabled={!editName.trim() || savingId === customer._id}
+                      className="clay-button bg-primary text-primary-foreground px-4 py-2 text-xs font-semibold flex-1"
+                    >
+                      {savingId === customer._id ? "Salvando..." : "Salvar"}
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="clay-button-secondary px-4 py-2 text-xs font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                    style={{ background: "var(--clay-orange)" }}
+                  >
+                    {customer.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{customer.name}</p>
+                    {customer.phone && (
+                      <p className="text-xs text-muted-foreground">{customer.phone}</p>
+                    )}
+                  </div>
+                  {confirmDeleteId === customer._id ? (
+                    <span className="text-[11px] text-destructive font-semibold shrink-0">
+                      Clique de novo para confirmar
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">
+                      Usa o link único acima
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => startEdit(customer)}
+                      className="clay-button-secondary p-2"
+                      title="Editar"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(customer._id)}
+                      disabled={savingId === customer._id}
+                      className={`clay-button-secondary p-2 ${
+                        confirmDeleteId === customer._id
+                          ? "bg-destructive/10 ring-1 ring-destructive/30"
+                          : ""
+                      } text-destructive`}
+                      title={confirmDeleteId === customer._id ? "Confirmar exclusão" : "Excluir"}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -834,24 +969,12 @@ function StampsView({ businessId }: { businessId: string }) {
 
   const copyLink = async () => {
     if (!generatedLink) return;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(generatedLink);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = generatedLink;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
+    const ok = await copyTextToClipboard(generatedLink);
+    if (ok) {
       setCopiedLink(true);
       toast.success("Link copiado!");
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch {
+    } else {
       toast.error("Erro ao copiar");
     }
   };
