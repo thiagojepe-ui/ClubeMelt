@@ -9,12 +9,15 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
-// Lazy load route components for better code splitting
+// Eagerly load public customer-facing routes to prevent removeChild DOM errors
+// during lazy Suspense transitions between these routes
+import CustomerRegister from "./pages/CustomerRegister.tsx";
+import CustomerDashboard from "./pages/CustomerDashboard.tsx";
+import CardView from "./pages/CardView.tsx";
+
+// Lazy load admin/auth routes (behind auth, less time-sensitive)
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const CardView = lazy(() => import("./pages/CardView.tsx"));
-const CustomerRegister = lazy(() => import("./pages/CustomerRegister.tsx"));
-const CustomerDashboard = lazy(() => import("./pages/CustomerDashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
