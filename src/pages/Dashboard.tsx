@@ -11,7 +11,6 @@ import {
   LogOut,
   Plus,
   Search,
-  ChevronRight,
   Link,
   Copy,
   Check,
@@ -589,7 +588,6 @@ function CustomersView({ businessId }: { businessId: string }) {
   const [newPhone, setNewPhone] = useState("");
   const [adding, setAdding] = useState(false);
   const [copiedReg, setCopiedReg] = useState(false);
-  const [copiedCustomer, setCopiedCustomer] = useState<string | null>(null);
 
   const registerUrl = `${window.location.origin}/register/${businessId}`;
 
@@ -620,18 +618,6 @@ function CustomersView({ businessId }: { businessId: string }) {
       setCopiedReg(true);
       toast.success("Link de cadastro copiado!");
       setTimeout(() => setCopiedReg(false), 2000);
-    } else {
-      toast.error("Erro ao copiar link");
-    }
-  };
-
-  const handleCopyCustomerArea = async (customerId: string) => {
-    const url = `${window.location.origin}/customer/${customerId}`;
-    const ok = await copyToClipboard(url);
-    if (ok) {
-      setCopiedCustomer(customerId);
-      toast.success("Link da área do cliente copiado!");
-      setTimeout(() => setCopiedCustomer(null), 2000);
     } else {
       toast.error("Erro ao copiar link");
     }
@@ -692,7 +678,7 @@ function CustomersView({ businessId }: { businessId: string }) {
           Cliente se cadastra sozinho
         </p>
         <p className="text-xs text-muted-foreground mb-3">
-          Envie este link para o cliente — ele mesmo informa nome e telefone.
+          Este é o único link do cliente: cadastro, login, selos e prêmios.
         </p>
         <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3">
           <p className="text-[11px] text-muted-foreground break-all flex-1 font-mono leading-relaxed">{registerUrl}</p>
@@ -792,14 +778,9 @@ function CustomersView({ businessId }: { businessId: string }) {
                   <p className="text-xs text-muted-foreground">{customer.phone}</p>
                 )}
               </div>
-              <button
-                onClick={() => handleCopyCustomerArea(customer._id)}
-                className="clay-button-secondary px-2.5 py-1.5 text-[11px] font-semibold flex items-center gap-1 shrink-0"
-                title="Copiar link da área do cliente"
-              >
-                {copiedCustomer === customer._id ? <><Check className="w-3 h-3" /> OK</> : <><Copy className="w-3 h-3" /> Área</>}
-              </button>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                Usa o link único acima
+              </span>
             </div>
           ))}
         </div>
@@ -823,7 +804,6 @@ function StampsView({ businessId }: { businessId: string }) {
   const [creating, setCreating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
 
   const filteredCustomers = useMemo(() => {
     const list = customers ?? [];
@@ -843,9 +823,8 @@ function StampsView({ businessId }: { businessId: string }) {
         customerId: selectedCustomer as any,
         count: stampCount,
       });
-      const url = `${window.location.origin}/customer/${selectedCustomer}`;
+      const url = `${window.location.origin}/register/${businessId}`;
       setGeneratedLink(url);
-      setCreatedCustomerId(selectedCustomer);
       toast.success(`${stampCount} carimbo(s) adicionado(s) ao cliente!`);
     } catch (err: any) {
       toast.error(err?.data?.message || "Erro ao gerar link");
@@ -881,12 +860,11 @@ function StampsView({ businessId }: { businessId: string }) {
     setSelectedCustomer(null);
     setStampCount(1);
     setGeneratedLink(null);
-    setCreatedCustomerId(null);
   };
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="mt-6">
-      <h2 className="text-lg font-bold mb-4">Gerar Links de Carimbo</h2>
+      <h2 className="text-lg font-bold mb-4">Adicionar selos</h2>
 
       {/* Step 1: Select card */}
       <div className="clay-card p-5 mb-4">
@@ -937,7 +915,7 @@ function StampsView({ businessId }: { businessId: string }) {
             <button onClick={() => { setStampCount(stampCount + 1); setGeneratedLink(null); }} className="clay-button-secondary w-10 h-10 text-lg font-bold flex items-center justify-center">+</button>
           </div>
           <button onClick={handleCreate} disabled={creating} className="clay-button bg-primary text-primary-foreground w-full py-3 font-semibold text-base flex items-center justify-center gap-2">
-            {creating ? "Gerando..." : <><Link className="w-5 h-5" /> Gerar link ({stampCount} carimbo{stampCount > 1 ? 's' : ''})</>}
+            {creating ? "Adicionando..." : <><Link className="w-5 h-5" /> Adicionar {stampCount} selo{stampCount > 1 ? 's' : ''}</>}
           </button>
         </motion.div>
       )}
@@ -945,14 +923,14 @@ function StampsView({ businessId }: { businessId: string }) {
       {/* Generated link */}
       {generatedLink && (
         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="clay-card p-5">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Selo(s) adicionado(s)! Envie o link da área do cliente</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Selo(s) adicionado(s)! Envie o link único do cliente</p>
           <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3 mb-3">
             <p className="text-xs text-muted-foreground truncate flex-1 font-mono">{generatedLink}</p>
             <button onClick={copyLink} className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0">
               {copiedLink ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground text-center">Envie este link ao cliente. Os selos já aparecem na área dele!</p>
+          <p className="text-xs text-muted-foreground text-center">O cliente usa este mesmo link para se cadastrar, entrar e coletar os selos.</p>
         </motion.div>
       )}
 
@@ -997,7 +975,7 @@ function StampsView({ businessId }: { businessId: string }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     {entry.unrevealedCount > 0 && (
                       <span className="clay-badge px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700">
-                        {entry.unrevealedCount} link(s) pendente(s)
+                        {entry.unrevealedCount} selo(s) aguardando coleta
                       </span>
                     )}
                     {entry.justCompleted && (

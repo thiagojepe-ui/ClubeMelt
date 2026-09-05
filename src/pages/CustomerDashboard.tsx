@@ -1,14 +1,29 @@
 import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
-import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw, LogOut } from "lucide-react";
 
 export default function CustomerDashboard() {
   const { customerId } = useParams<{ customerId: string }>();
+  const [customerPhone, setCustomerPhone] = useState<string | null>(() => {
+    if (!customerId) return null;
+    try {
+      const stored = localStorage.getItem(`freebuff_customer_${customerId}`);
+      return stored ? JSON.parse(stored).phone ?? null : null;
+    } catch {
+      return null;
+    }
+  });
+  const [collectingCardId, setCollectingCardId] = useState<string | null>(null);
+  const [collectMessage, setCollectMessage] = useState<string | null>(null);
+  const revealNext = useMutation(api.publicCustomers.revealNextForCustomer);
 
   const batches = useQuery(
     api.publicCustomers.getMyBatches,
-    customerId ? { customerId: customerId as any } : "skip",
+    customerId && customerPhone
+      ? { customerId: customerId as any, phone: customerPhone }
+      : "skip",
   );
 
   const customerInfo = useQuery(
@@ -16,11 +31,57 @@ export default function CustomerDashboard() {
     customerId ? { customerId: customerId as any } : "skip",
   );
 
+  useEffect(() => {
+    if (customerInfo && !customerPhone) {
+      window.location.replace(`/register/${customerInfo.businessId}`);
+    }
+  }, [customerInfo, customerPhone]);
+
+  const handleCollect = async (loyaltyCardId: string) => {
+    if (!customerId || !customerPhone || collectingCardId) return;
+    setCollectingCardId(loyaltyCardId);
+    setCollectMessage(null);
+    try {
+      const result = await revealNext({
+        customerId: customerId as any,
+        loyaltyCardId: loyaltyCardId as any,
+        phone: customerPhone,
+      });
+      setCollectMessage(
+        result.justCompleted
+          ? `🎉 Cartão completo! Prêmio: ${result.rewardDescription}`
+          : result.prize?.message || "Selo coletado!",
+      );
+    } catch (err: any) {
+      setCollectMessage(err?.data?.message || err?.message || "Não foi possível coletar o selo");
+    } finally {
+      setCollectingCardId(null);
+    }
+  };
+
+  const handleLogout = () => {
+    if (customerId) localStorage.removeItem(`freebuff_customer_${customerId}`);
+    if (customerInfo?.businessId) {
+      window.location.replace(`/register/${customerInfo.businessId}`);
+    }
+  };
+
   if (!customerId) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4">
         <div className="clay-card p-10 text-center max-w-sm">
           <p className="text-muted-foreground">Link inválido.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!customerPhone) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="clay-card p-10 text-center max-w-sm">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-muted-foreground" />
+          <p className="text-muted-foreground text-sm">Abrindo seu acesso...</p>
         </div>
       </main>
     );
@@ -143,8 +204,28 @@ export default function CustomerDashboard() {
 
         {/* Current card */}
         {currentBatch && (
-          <CurrentCard batch={currentBatch} brandColor={brandColor} />
+          <CurrentCard
+            batch={currentBatch}
+            brandColor={brandColor}
+            collecting={collectingCardId === currentBatch.loyaltyCardId}
+            onCollect={() => handleCollect(currentBatch.loyaltyCardId)}
+          />
         )}
+
+        {collectMessage && (
+          <div className="clay-badge mt-4 px-4 py-3 text-sm text-center font-semibold" style={{ color: brandColor, background: `${brandColor}15` }}>
+            {collectMessage}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="clay-button-secondary w-full mt-6 py-3 text-sm font-semibold flex items-center justify-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Sair da minha área
+        </button>
       </div>
     </main>
   );
@@ -172,6 +253,8 @@ function CurrentCard({
     logoEmoji: string;
   };
   brandColor: string;
+  collecting: boolean;
+  onCollect: () => void;
 }) {
   const cardBrandColor = batch.brandColor || brandColor;
   const progress =
@@ -264,6 +347,25 @@ function CurrentCard({
             );
           })}
         </div>
+
+        {batch.batchPending > 0 && (
+          <button
+            type="button"
+            onClick={onCollect}
+            disabled={collecting}
+            className="clay-button w-full py-3 mt-4 font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{ background: cardBrandColor, color: "white" }}
+          >
+            {collecting ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <MousePointerClick className="w-5 h-5" />
+                Coletar {batch.batchPending} selo{batch.batchPending > 1 ? "s" : ""}
+              </>
+            )}
+          </button>
+        )}
 
         {/* Progress info */}
         {!batch.completed && (

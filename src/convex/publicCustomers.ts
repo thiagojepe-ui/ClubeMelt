@@ -11,8 +11,9 @@ export const getCustomerPublic = query({
     if (!customer) return null;
     const business = await ctx.db.get(customer.businessId);
     return {
+      _id: customer._id,
+      businessId: customer.businessId,
       name: customer.name,
-      phone: customer.phone,
       businessName: business?.name ?? "",
       brandColor: business?.brandColor ?? undefined,
       logoEmoji: business?.logoEmoji ?? undefined,
@@ -91,6 +92,97 @@ export const register = mutation({
  * Client self-registration: creates or finds a customer by phone for a business.
  * Returns the customer record.
  */
+export const loginCustomer = mutation({
+  args: {
+    businessId: v.id("businesses"),
+    phone: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const normalized = args.phone.replace(/\D/g, "");
+    return await ctx.db
+      .query("customers")
+      .withIndex("by_business_phone", (q) =>
+        q.eq("businessId", args.businessId).eq("phone", normalized),
+      )
+      .first();
+  },
+});
+
+/**
+ * Log in and reveal the customer account associated with a phone number.
+ * The customer area uses this mutation before showing the private progress view.
+ */
+export const revealNextForCustomer = mutation({
+  args: {
+    customerId: v.id("customers"),
+    loyaltyCardId: v.id("loyaltyCards"),
+    phone: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const customer = await ctx.db.get(args.customerId);
+    if (!customer || customer.businessId === undefined) {
+      throw new Error("Cliente não encontrado");
+    }
+
+    const normalizedPhone = args.phone.replace(/\D/g, "");
+    if (!customer.phone || customer.phone !== normalizedPhone) {
+      throw new Error("Sessão do cliente inválida");
+    }
+
+    const card = await ctx.db.get(args.loyaltyCardId);
+    if (!card || card.businessId !== customer.businessId) {
+      throw new Error("Cartão não encontrado");
+    }
+
+    const stamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_loyalty_customer", (q) =>
+        q
+          .eq("loyaltyCardId", args.loyaltyCardId)
+          .eq("customerId", args.customerId),
+      )
+      .collect();
+
+    const nextStamp = stamps
+      .filter((stamp) => !stamp.revealed)
+      .sort((a, b) => a.createdAt - b.createdAt)[0];
+    if (!nextStamp) {
+      throw new Error("Não há selos pendentes para coletar");
+    }
+
+    const revealedBefore = stamps.reduce(
+      (sum, stamp) => (stamp.revealed ? sum + stamp.count : sum),
+      0,
+    );
+    const position = revealedBefore % card.totalStamps;
+    const prizes = card.stampPrizes ?? [];
+    const prize =
+      prizes.length > 0
+        ? prizes[position % prizes.length]
+        : { message: "Selo coletado!", isPrize: false };
+
+    await ctx.db.patch(nextStamp._id, {
+      revealed: true,
+      revealedAt: Date.now(),
+    });
+
+    const totalRevealed = revealedBefore + nextStamp.count;
+    const currentProgress = totalRevealed % card.totalStamps;
+
+    return {
+      position,
+      prize,
+      totalRevealed,
+      totalStamps: card.totalStamps,
+      currentProgress,
+      cyclesCompleted: Math.floor(totalRevealed / card.totalStamps),
+      justCompleted: currentProgress === 0,
+      rewardDescription: card.rewardDescription,
+      customerName: customer.name,
+    };
+  },
+});
+
 export const registerSelf = mutation({
   args: {
     businessId: v.id("businesses"),
@@ -242,8 +334,14 @@ export const getByBatchToken = query({
     const customer = await ctx.db.get(firstStamp.customerId);
 
     // Count revealed vs pending in this batch
-    const revealedCount = batchStamps.filter((s) => s.revealed).length;
-    const pendingCount = batchStamps.filter((s) => !s.revealed).length;
+    const revealedCount = batchStamps.reduce(
+      (sum, stamp) => (stamp.revealed ? sum + stamp.count : sum),
+      0,
+    );
+    const pendingCount = batchStamps.reduce(
+      (sum, stamp) => (!stamp.revealed ? sum + stamp.count : sum),
+      0,
+    );
 
     // Also count total revealed across all stamps for this customer+card
     const allCustomerStamps = await ctx.db
@@ -255,7 +353,10 @@ export const getByBatchToken = query({
       )
       .collect();
 
-    const totalRevealed = allCustomerStamps.filter((s) => s.revealed).length;
+    const totalRevealed = allCustomerStamps.reduce(
+      (sum, stamp) => (stamp.revealed ? sum + stamp.count : sum),
+      0,
+    );
     const totalStamps = card?.totalStamps ?? 1;
     const currentProgress = totalRevealed % totalStamps;
     const cyclesCompleted = Math.floor(totalRevealed / totalStamps);
@@ -319,9 +420,13 @@ export const revealNextByBatchToken = mutation({
       )
       .collect();
 
-    const revealedBefore = allCustomerStamps.filter(
-      (s) => s.revealed && s._id !== nextStamp._id,
-    ).length;
+    const revealedBefore = allCustomerStamps.reduce(
+      (sum, stamp) =>
+        stamp.revealed && stamp._id !== nextStamp._id
+          ? sum + stamp.count
+          : sum,
+      0,
+    );
 
     // Cycle-aware position: use modular arithmetic so prizes repeat each cycle
     const position = revealedBefore % card.totalStamps;
@@ -344,9 +449,13 @@ export const revealNextByBatchToken = mutation({
     const cyclesCompleted = Math.floor(totalRevealed / card.totalStamps);
     const justCompleted = currentProgress === 0;
 
-    const batchPending = batchStamps.filter(
-      (s) => !s.revealed && s._id !== nextStamp._id,
-    ).length;
+    const batchPending = batchStamps.reduce(
+      (sum, stamp) =>
+        !stamp.revealed && stamp._id !== nextStamp._id
+          ? sum + stamp.count
+          : sum,
+      0,
+    );
 
     return {
       position,
@@ -368,8 +477,17 @@ export const revealNextByBatchToken = mutation({
  * Used by the client dashboard. Cycle-aware.
  */
 export const getMyBatches = query({
-  args: { customerId: v.id("customers") },
+  args: {
+    customerId: v.id("customers"),
+    phone: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    const customer = await ctx.db.get(args.customerId);
+    const normalizedPhone = args.phone?.replace(/\D/g, "");
+    if (!customer || !customer.phone || !normalizedPhone || customer.phone !== normalizedPhone) {
+      throw new Error("Sessão do cliente inválida");
+    }
+
     const allStamps = await ctx.db
       .query("stamps")
       .withIndex("by_customer", (q) => q.eq("customerId", args.customerId))
@@ -433,11 +551,11 @@ export const getMyBatches = query({
         });
       }
       const b = batchMap.get(bt)!;
-      b.batchTotal++;
+      b.batchTotal += stamp.count;
       if (stamp.revealed) {
-        b.batchRevealed++;
+        b.batchRevealed += stamp.count;
       } else {
-        b.batchPending++;
+        b.batchPending += stamp.count;
       }
     }
 
@@ -446,7 +564,7 @@ export const getMyBatches = query({
     for (const stamp of allStamps) {
       if (stamp.revealed) {
         const cur = cardRevealedMap.get(stamp.loyaltyCardId) || 0;
-        cardRevealedMap.set(stamp.loyaltyCardId, cur + 1);
+        cardRevealedMap.set(stamp.loyaltyCardId, cur + stamp.count);
       }
     }
 
