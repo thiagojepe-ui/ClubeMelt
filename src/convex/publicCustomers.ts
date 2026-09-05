@@ -466,10 +466,8 @@ export const getMyBatches = query({
   handler: async (ctx, args) => {
     const customer = await ctx.db.get(args.customerId);
     const normalizedPhone = args.phone.replace(/\D/g, "");
-    // Return null instead of throwing so the client can redirect to the
-    // register page instead of crashing via the error boundary.
     if (!customer || !customer.phone || customer.phone !== normalizedPhone) {
-      return null;
+      throw new Error("Sessão do cliente inválida");
     }
 
     const allStamps = await ctx.db
