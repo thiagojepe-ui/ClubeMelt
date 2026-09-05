@@ -334,14 +334,8 @@ export const getByBatchToken = query({
     const customer = await ctx.db.get(firstStamp.customerId);
 
     // Count revealed vs pending in this batch
-    const revealedCount = batchStamps.reduce(
-      (sum, stamp) => (stamp.revealed ? sum + stamp.count : sum),
-      0,
-    );
-    const pendingCount = batchStamps.reduce(
-      (sum, stamp) => (!stamp.revealed ? sum + stamp.count : sum),
-      0,
-    );
+    const revealedCount = batchStamps.filter((s) => s.revealed).length;
+    const pendingCount = batchStamps.filter((s) => !s.revealed).length;
 
     // Also count total revealed across all stamps for this customer+card
     const allCustomerStamps = await ctx.db
@@ -353,10 +347,7 @@ export const getByBatchToken = query({
       )
       .collect();
 
-    const totalRevealed = allCustomerStamps.reduce(
-      (sum, stamp) => (stamp.revealed ? sum + stamp.count : sum),
-      0,
-    );
+    const totalRevealed = allCustomerStamps.filter((s) => s.revealed).length;
     const totalStamps = card?.totalStamps ?? 1;
     const currentProgress = totalRevealed % totalStamps;
     const cyclesCompleted = Math.floor(totalRevealed / totalStamps);
@@ -420,13 +411,9 @@ export const revealNextByBatchToken = mutation({
       )
       .collect();
 
-    const revealedBefore = allCustomerStamps.reduce(
-      (sum, stamp) =>
-        stamp.revealed && stamp._id !== nextStamp._id
-          ? sum + stamp.count
-          : sum,
-      0,
-    );
+    const revealedBefore = allCustomerStamps.filter(
+      (s) => s.revealed && s._id !== nextStamp._id,
+    ).length;
 
     // Cycle-aware position: use modular arithmetic so prizes repeat each cycle
     const position = revealedBefore % card.totalStamps;
@@ -449,13 +436,9 @@ export const revealNextByBatchToken = mutation({
     const cyclesCompleted = Math.floor(totalRevealed / card.totalStamps);
     const justCompleted = currentProgress === 0;
 
-    const batchPending = batchStamps.reduce(
-      (sum, stamp) =>
-        !stamp.revealed && stamp._id !== nextStamp._id
-          ? sum + stamp.count
-          : sum,
-      0,
-    );
+    const batchPending = batchStamps.filter(
+      (s) => !s.revealed && s._id !== nextStamp._id,
+    ).length;
 
     return {
       position,
@@ -479,12 +462,12 @@ export const revealNextByBatchToken = mutation({
 export const getMyBatches = query({
   args: {
     customerId: v.id("customers"),
-    phone: v.optional(v.string()),
+    phone: v.string(),
   },
   handler: async (ctx, args) => {
     const customer = await ctx.db.get(args.customerId);
-    const normalizedPhone = args.phone?.replace(/\D/g, "");
-    if (!customer || !customer.phone || !normalizedPhone || customer.phone !== normalizedPhone) {
+    const normalizedPhone = args.phone.replace(/\D/g, "");
+    if (!customer || !customer.phone || customer.phone !== normalizedPhone) {
       throw new Error("Sessão do cliente inválida");
     }
 
@@ -551,11 +534,11 @@ export const getMyBatches = query({
         });
       }
       const b = batchMap.get(bt)!;
-      b.batchTotal += stamp.count;
+      b.batchTotal++;
       if (stamp.revealed) {
-        b.batchRevealed += stamp.count;
+        b.batchRevealed++;
       } else {
-        b.batchPending += stamp.count;
+        b.batchPending++;
       }
     }
 
@@ -564,7 +547,7 @@ export const getMyBatches = query({
     for (const stamp of allStamps) {
       if (stamp.revealed) {
         const cur = cardRevealedMap.get(stamp.loyaltyCardId) || 0;
-        cardRevealedMap.set(stamp.loyaltyCardId, cur + stamp.count);
+        cardRevealedMap.set(stamp.loyaltyCardId, cur + 1);
       }
     }
 

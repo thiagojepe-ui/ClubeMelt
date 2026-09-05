@@ -236,6 +236,8 @@ export default function CustomerDashboard() {
 function CurrentCard({
   batch,
   brandColor,
+  collecting,
+  onCollect,
 }: {
   batch: {
     batchToken: string;
