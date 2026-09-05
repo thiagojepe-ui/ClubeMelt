@@ -201,11 +201,10 @@ export const registerSelf = mutation({
       .first();
 
     if (existing) {
-      // Update name if different
-      if (existing.name !== args.name) {
-        await ctx.db.patch(existing._id, { name: args.name });
-      }
-      return existing;
+      // Prevent duplicate registrations for the same phone.
+      throw new Error(
+        "Este telefone já está cadastrado. Faça login com o mesmo telefone.",
+      );
     }
 
     const id = await ctx.db.insert("customers", {
@@ -467,8 +466,10 @@ export const getMyBatches = query({
   handler: async (ctx, args) => {
     const customer = await ctx.db.get(args.customerId);
     const normalizedPhone = args.phone.replace(/\D/g, "");
+    // Return null instead of throwing so the client can redirect to the
+    // register page instead of crashing via the error boundary.
     if (!customer || !customer.phone || customer.phone !== normalizedPhone) {
-      throw new Error("Sessão do cliente inválida");
+      return null;
     }
 
     const allStamps = await ctx.db
