@@ -23,6 +23,21 @@ class RootErrorBoundary extends React.Component<
 > {
   state = { hasError: false, message: "", stack: "" };
   static getDerivedStateFromError(error: Error) {
+    // Filter out non-fatal DOM errors caused by external platform tools
+    // (e.g., Freebuff toolbar, Sonner portals) manipulating the DOM
+    const msg = error.message || "";
+    const name = error.name || "";
+    const isNonFatalDomError =
+      error instanceof DOMException ||
+      name === "NotFoundError" ||
+      name === "HierarchyRequestError" ||
+      msg.includes("removeChild") ||
+      msg.includes("insertBefore") ||
+      msg.includes("replaceChild");
+    if (isNonFatalDomError) {
+      console.warn("[RootErrorBoundary] Non-fatal DOM error suppressed:", msg);
+      return null; // Don't show error overlay
+    }
     return {
       hasError: true,
       message: error.message || "Unknown runtime error",
