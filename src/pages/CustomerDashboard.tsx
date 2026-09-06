@@ -232,105 +232,6 @@ export default function CustomerDashboard() {
           </div>
         )}
 
-        {/* Prize reveal overlay — always in DOM, hidden with display:none */}
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-            display: showPrize && lastReveal ? "flex" : "none",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-            background: "rgba(0,0,0,0.35)",
-            backdropFilter: "blur(4px)",
-          }}
-          onClick={() => { setShowPrize(false); setLastReveal(null); }}
-        >
-          {lastReveal && (
-            <div
-              className="clay-float p-6 w-full max-w-sm text-center relative overflow-hidden"
-              style={{
-                background: lastReveal.prize?.isPrize || lastReveal.justCompleted
-                  ? `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`
-                  : "oklch(0.96 0.005 90)",
-                border: `2px solid ${lastReveal.prize?.isPrize || lastReveal.justCompleted ? brandColor + "40" : "oklch(0.9 0.01 90 / 0.5)"}`,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative z-10">
-                {lastReveal.justCompleted ? (
-                  <>
-                    <div className="text-5xl mb-3">🎉</div>
-                    <div
-                      className="clay-badge px-3 py-1 text-xs font-semibold mb-3 inline-flex items-center gap-1.5"
-                      style={{ background: `${brandColor}15`, color: brandColor }}
-                    >
-                      <PartyPopper className="w-3.5 h-3.5" />
-                      Ciclo completo!
-                    </div>
-                    <p className="font-bold text-xl mb-1">Parabéns!</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                      Você completou o cartão e desbloqueou sua recompensa!
-                    </p>
-                    <div
-                      className="rounded-2xl p-4 text-center mb-4"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}06)`,
-                        border: `2px solid ${brandColor}25`,
-                      }}
-                    >
-                      <div className="text-3xl mb-2">🎁</div>
-                      <p className="text-sm font-bold" style={{ color: brandColor }}>
-                        {lastReveal.rewardDescription}
-                      </p>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      Apresente este prêmio no estabelecimento para resgatar.
-                    </p>
-                  </>
-                ) : lastReveal.prize?.isPrize ? (
-                  <>
-                    <div className="text-4xl mb-3">🎁</div>
-                    <div
-                      className="clay-badge px-3 py-1 text-xs font-semibold mb-2 inline-flex"
-                      style={{ background: `${brandColor}15`, color: brandColor }}
-                    >
-                      Prêmio!
-                    </div>
-                    <p className="font-bold text-lg mb-1">Parabéns!</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                      {lastReveal.prize?.message}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-4xl mb-3">⭐</div>
-                    <p className="font-bold text-lg mb-1">Selo coletado!</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                      {lastReveal.prize?.message || "Selo coletado com sucesso!"}
-                    </p>
-                  </>
-                )}
-
-                {!lastReveal.justCompleted && (
-                  <p className="text-xs text-muted-foreground mb-4">
-                    {lastReveal.totalStamps - lastReveal.currentProgress} selo(s) restante(s) para completar o cartão
-                  </p>
-                )}
-
-                <button
-                  onClick={() => { setShowPrize(false); setLastReveal(null); }}
-                  className="clay-button px-6 py-2.5 text-sm font-semibold w-full"
-                  style={{ background: brandColor, color: "white" }}
-                >
-                  {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
         <button
           type="button"
           onClick={handleLogout}
@@ -339,6 +240,105 @@ export default function CustomerDashboard() {
           <LogOut className="w-4 h-4" />
           Sair da minha área
         </button>
+      </div>
+
+      {/* Prize reveal overlay — outside content container, z-9999, display:none toggle */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9999,
+          display: showPrize && lastReveal ? "flex" : "none",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1rem",
+          background: "rgba(0,0,0,0.35)",
+          backdropFilter: "blur(4px)",
+        }}
+        onClick={() => { setShowPrize(false); setLastReveal(null); }}
+      >
+        {lastReveal && (
+          <div
+            className="clay-float p-6 w-full max-w-sm text-center relative overflow-hidden"
+            style={{
+              background: lastReveal.prize?.isPrize || lastReveal.justCompleted
+                ? `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`
+                : "oklch(0.96 0.005 90)",
+              border: `2px solid ${lastReveal.prize?.isPrize || lastReveal.justCompleted ? brandColor + "40" : "oklch(0.9 0.01 90 / 0.5)"}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative z-10">
+              {lastReveal.justCompleted ? (
+                <>
+                  <div className="text-5xl mb-3">🎉</div>
+                  <div
+                    className="clay-badge px-3 py-1 text-xs font-semibold mb-3 inline-flex items-center gap-1.5"
+                    style={{ background: `${brandColor}15`, color: brandColor }}
+                  >
+                    <PartyPopper className="w-3.5 h-3.5" />
+                    Ciclo completo!
+                  </div>
+                  <p className="font-bold text-xl mb-1">Parabéns!</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                    Você completou o cartão e desbloqueou sua recompensa!
+                  </p>
+                  <div
+                    className="rounded-2xl p-4 text-center mb-4"
+                    style={{
+                      background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}06)`,
+                      border: `2px solid ${brandColor}25`,
+                    }}
+                  >
+                    <div className="text-3xl mb-2">🎁</div>
+                    <p className="text-sm font-bold" style={{ color: brandColor }}>
+                      {lastReveal.rewardDescription}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Apresente este prêmio no estabelecimento para resgatar.
+                  </p>
+                </>
+              ) : lastReveal.prize?.isPrize ? (
+                <>
+                  <div className="text-4xl mb-3">🎁</div>
+                  <div
+                    className="clay-badge px-3 py-1 text-xs font-semibold mb-2 inline-flex"
+                    style={{ background: `${brandColor}15`, color: brandColor }}
+                  >
+                    Prêmio!
+                  </div>
+                  <p className="font-bold text-lg mb-1">Parabéns!</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                    {lastReveal.prize?.message}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">⭐</div>
+                  <p className="font-bold text-lg mb-1">Selo coletado!</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                    {lastReveal.prize?.message || "Selo coletado com sucesso!"}
+                  </p>
+                </>
+              )}
+
+              {!lastReveal.justCompleted && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  {lastReveal.totalStamps - lastReveal.currentProgress} selo(s) restante(s) para completar o cartão
+                </p>
+              )}
+
+              <button
+                onClick={() => { setShowPrize(false); setLastReveal(null); }}
+                className="clay-button px-6 py-2.5 text-sm font-semibold w-full"
+                style={{ background: brandColor, color: "white" }}
+              >
+                {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
