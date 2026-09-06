@@ -360,12 +360,8 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
         </button>
       </div>
 
-      <AnimatePresence>
-        {(showCreate || editingCard) && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+      {(showCreate || editingCard) && (
+          <div
             className="clay-card p-6 mb-4"
           >
             <h3 className="font-bold mb-4">{formTitle}</h3>
@@ -476,9 +472,8 @@ function CardsView({ businessId }: { businessId: string; brandColor: string }) {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {!cards || cards.length === 0 ? (
         <div className="clay-card p-12 text-center">
@@ -755,12 +750,8 @@ function CustomersView({ businessId }: { businessId: string }) {
         />
       </div>
 
-      <AnimatePresence>
-        {showAdd && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+      {showAdd && (
+          <div
             className="clay-card p-6 mb-4"
           >
             <h3 className="font-bold mb-4">Cadastrar cliente</h3>
@@ -805,9 +796,8 @@ function CustomersView({ businessId }: { businessId: string }) {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
 
       {filteredCustomers.length === 0 ? (
         <div className="clay-card p-12 text-center">

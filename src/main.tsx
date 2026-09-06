@@ -3,30 +3,18 @@ import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import React, { StrictMode, useEffect, lazy, Suspense } from "react";
+import React, { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
-// Eagerly load public customer-facing routes to prevent removeChild DOM errors
-// during lazy Suspense transitions between these routes
+// Eagerly load all routes to prevent removeChild DOM errors from lazy Suspense transitions
+import AuthPage from "./pages/Auth.tsx";
+import Dashboard from "./pages/Dashboard.tsx";
+import NotFound from "./pages/NotFound.tsx";
 import CustomerRegister from "./pages/CustomerRegister.tsx";
 import CustomerDashboard from "./pages/CustomerDashboard.tsx";
 import CardView from "./pages/CardView.tsx";
-
-// Lazy load admin/auth routes (behind auth, less time-sensitive)
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const NotFound = lazy(() => import("./pages/NotFound.tsx"));
-
-// Simple loading fallback for route transitions
-function RouteLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
-    </div>
-  );
-}
 
 /** Hard guard so runtime errors never leave the preview as a blank page. */
 class RootErrorBoundary extends React.Component<
@@ -100,27 +88,25 @@ createRoot(document.getElementById("root")!).render(
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route
-                path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
-              <Route path="/batch/:batchToken" element={<CardView />} />
-              <Route path="/register/:businessId" element={<CustomerRegister />} />
-              <Route path="/customer/:customerId" element={<CustomerDashboard />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/auth"
+              element={<AuthPage redirectAfterAuth="/dashboard" />}
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route path="/batch/:batchToken" element={<CardView />} />
+            <Route path="/register/:businessId" element={<CustomerRegister />} />
+            <Route path="/customer/:customerId" element={<CustomerDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
         <Toaster />
       </ConvexAuthProvider>
