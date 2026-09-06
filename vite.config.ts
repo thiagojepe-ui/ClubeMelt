@@ -93,8 +93,6 @@ export default defineConfig({
     host: true,
     port: 5173,
     // Keep HMR on, but disable full-screen error overlay
-    hmr: {
-      overlay: false,
-    },
+    hmr: false,
   },
 });
