@@ -32,6 +32,11 @@ export default function CustomerRegister() {
         name: name.trim(),
         phone: phone.trim(),
       });
+      if (!customer) {
+        setError("Erro ao cadastrar cliente");
+        setLoading(false);
+        return;
+      }
       // Auto-login: store session and redirect directly to the customer area.
       // Use setTimeout to defer navigation out of React's commit phase and
       // avoid the removeChild DOM error.
