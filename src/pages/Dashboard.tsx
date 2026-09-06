@@ -3,7 +3,7 @@ import CookieLogo from "@/components/CookieLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   CreditCard,
   Users,
@@ -25,8 +25,7 @@ import { toast } from "sonner";
 
 type DashboardView = "overview" | "setup" | "cards" | "customers" | "stamps";
 
-/* Shared clipboard helper — the async Clipboard API can be blocked inside
-   iframes (NotAllowedError), so always keep a legacy execCommand fallback. */
+/* Shared clipboard helper — uses execCommand fallback for iframe contexts */
 async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -34,21 +33,21 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
       return true;
     }
   } catch {
-    // fall through to the legacy fallback
+    // fall through to legacy fallback
   }
   try {
+    // Use a detached container to avoid touching document.body
     const ta = document.createElement("textarea");
     ta.value = text;
     ta.setAttribute("readonly", "");
-    ta.style.position = "fixed";
-    ta.style.top = "-1000px";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
+    ta.style.cssText = "position:fixed;top:-9999px;opacity:0;pointer-events:none";
+    const container = document.createDocumentFragment();
+    container.appendChild(ta);
     ta.focus();
     ta.select();
     ta.setSelectionRange(0, text.length);
     const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
+    // Fragment children are cleaned up automatically when collected
     return ok;
   } catch {
     return false;
@@ -141,17 +140,15 @@ export default function Dashboard() {
               </div>
 
               {/* Sub-views */}
-              <AnimatePresence mode="wait">
-                {view === "cards" && (
-                  <CardsView key="cards" businessId={business._id} brandColor={business.brandColor || "#B5651D"} />
-                )}
-                {view === "customers" && (
-                  <CustomersView key="customers" businessId={business._id} />
-                )}
-                {view === "stamps" && (
-                  <StampsView key="stamps" businessId={business._id} />
-                )}
-              </AnimatePresence>
+              {view === "cards" && (
+                <CardsView businessId={business._id} brandColor={business.brandColor || "#B5651D"} />
+              )}
+              {view === "customers" && (
+                <CustomersView businessId={business._id} />
+              )}
+              {view === "stamps" && (
+                <StampsView businessId={business._id} />
+              )}
       </div>
     </main>
   );
