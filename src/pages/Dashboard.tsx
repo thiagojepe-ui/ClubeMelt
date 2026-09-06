@@ -112,13 +112,6 @@ export default function Dashboard() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-              key="main"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
               {/* Quick Stats */}
               <QuickStats businessId={business._id} />
 
@@ -159,8 +152,6 @@ export default function Dashboard() {
                   <StampsView key="stamps" businessId={business._id} />
                 )}
               </AnimatePresence>
-            </motion.div>
-        </AnimatePresence>
       </div>
     </main>
   );

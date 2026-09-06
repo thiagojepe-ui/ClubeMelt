@@ -33,7 +33,9 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     if (customerInfo && !customerPhone) {
-      window.location.replace(`/register/${customerInfo.businessId}`);
+      setTimeout(() => {
+        window.location.replace(`/register/${customerInfo.businessId}`);
+      }, 0);
     }
   }, [customerInfo, customerPhone]);
 
@@ -62,7 +64,9 @@ export default function CustomerDashboard() {
   const handleLogout = () => {
     if (customerId) localStorage.removeItem(`freebuff_customer_${customerId}`);
     if (customerInfo?.businessId) {
-      window.location.replace(`/register/${customerInfo.businessId}`);
+      setTimeout(() => {
+        window.location.replace(`/register/${customerInfo.businessId}`);
+      }, 0);
     }
   };
 

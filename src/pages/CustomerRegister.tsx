@@ -2,7 +2,7 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState } from "react";
-import { User, Phone, Loader2, CheckCircle, ArrowRight, LogIn } from "lucide-react";
+import { User, Phone, Loader2, ArrowRight, LogIn } from "lucide-react";
 
 export default function CustomerRegister() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -18,8 +18,6 @@ export default function CustomerRegister() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [registered, setRegistered] = useState(false);
-
   const brandColor = business?.brandColor || "var(--clay-orange)";
 
   const handleRegister = async (event: React.FormEvent) => {
@@ -29,16 +27,23 @@ export default function CustomerRegister() {
     setLoading(true);
     setError(null);
     try {
-      await registerSelf({
+      const customer = await registerSelf({
         businessId: businessId as any,
         name: name.trim(),
         phone: phone.trim(),
       });
-      setRegistered(true);
-      setMode("login");
+      // Auto-login: store session and redirect directly to the customer area.
+      // Use setTimeout to defer navigation out of React's commit phase and
+      // avoid the removeChild DOM error.
+      localStorage.setItem(
+        `freebuff_customer_${customer._id}`,
+        JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
+      );
+      setTimeout(() => {
+        window.location.replace(`/customer/${customer._id}`);
+      }, 0);
     } catch (err: any) {
       setError(err?.data?.message || err?.message || "Erro ao cadastrar");
-    } finally {
       setLoading(false);
     }
   };
@@ -63,12 +68,11 @@ export default function CustomerRegister() {
         `freebuff_customer_${customer._id}`,
         JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
       );
-      // A full navigation avoids React reconciling two public route trees in the
-      // same event that submits the login form.
-      window.location.replace(`/customer/${customer._id}`);
+      setTimeout(() => {
+        window.location.replace(`/customer/${customer._id}`);
+      }, 0);
     } catch (err: any) {
       setError(err?.data?.message || err?.message || "Erro ao entrar");
-    } finally {
       setLoading(false);
     }
   };
@@ -136,13 +140,6 @@ export default function CustomerRegister() {
           <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-clay-blue opacity-15 blur-3xl" />
 
           <div className="relative z-10">
-            {registered && (
-              <div className="clay-badge px-3 py-2 mb-4 text-xs font-semibold flex items-center gap-2" style={{ background: `${brandColor}15`, color: brandColor }}>
-                <CheckCircle className="w-4 h-4" />
-                Cadastro realizado. Entre para acessar sua área.
-              </div>
-            )}
-
             <form onSubmit={isRegister ? handleRegister : handleLogin} className="space-y-5">
               {isRegister && (
                 <div>
