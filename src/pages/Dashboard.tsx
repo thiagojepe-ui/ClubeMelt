@@ -23,7 +23,6 @@ import {
   Gift,
   Package,
   CheckCircle2,
-  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1126,7 +1125,7 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
   const counts = useQuery(api.prizeRedemptions.counts, { businessId: businessId as any });
   const updateStatus = useMutation(api.prizeRedemptions.updateStatus);
 
-  const [filter, setFilter] = useState<"all" | "pending" | "sent" | "delivered">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "delivered">("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -1137,7 +1136,7 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
 
   const handleStatusChange = async (
     redemptionId: string,
-    status: "pending" | "sent" | "delivered",
+    status: "pending" | "delivered",
   ) => {
     setUpdatingId(redemptionId);
     try {
@@ -1146,11 +1145,9 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
         status,
       });
       toast.success(
-        status === "sent"
-          ? "Marcado como enviado!"
-          : status === "delivered"
-            ? "Marcado como entregue!"
-            : "Status atualizado",
+        status === "delivered"
+          ? "Marcado como entregue!"
+          : "Prêmio reaberto",
       );
     } catch {
       toast.error("Erro ao atualizar status");
@@ -1163,11 +1160,6 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
       label: "Pendente",
       color: "bg-amber-100 text-amber-700",
       icon: <Package className="w-3.5 h-3.5" />,
-    },
-    sent: {
-      label: "Enviado",
-      color: "bg-blue-100 text-blue-700",
-      icon: <Truck className="w-3.5 h-3.5" />,
     },
     delivered: {
       label: "Entregue",
@@ -1187,7 +1179,7 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
 
       {/* Summary cards */}
       {counts && (
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           <button
             onClick={() => setFilter("all")}
             className={`clay-card p-4 text-center transition-all ${filter === "all" ? "ring-2 ring-primary/30" : ""}`}
@@ -1201,13 +1193,6 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
           >
             <p className="text-2xl font-bold text-amber-600">{counts.pending}</p>
             <p className="text-xs text-muted-foreground font-medium">Pendentes</p>
-          </button>
-          <button
-            onClick={() => setFilter("sent")}
-            className={`clay-card p-4 text-center transition-all ${filter === "sent" ? "ring-2 ring-blue-400/50" : ""}`}
-          >
-            <p className="text-2xl font-bold text-blue-600">{counts.sent}</p>
-            <p className="text-xs text-muted-foreground font-medium">Enviados</p>
           </button>
           <button
             onClick={() => setFilter("delivered")}
@@ -1231,13 +1216,13 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
           <p className="text-muted-foreground">
             {filter === "all"
               ? "Nenhum prêmio registrado ainda. Prêmios são criados automaticamente quando um cliente completa o ciclo."
-              : `Nenhum prêmio ${filter === "pending" ? "pendente" : filter === "sent" ? "enviado" : "entregue"}.`}
+              : `Nenhum prêmio ${filter === "pending" ? "pendente" : "entregue"}.`}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((redemption) => {
-            const sc = statusConfig[redemption.status];
+            const sc = statusConfig[redemption.status as keyof typeof statusConfig] ?? statusConfig.pending;
             return (
               <div key={redemption._id} className="clay-card p-4">
                 <div className="flex items-start gap-3">
@@ -1267,9 +1252,6 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
                       <span>
                         {new Date(redemption.createdAt).toLocaleDateString("pt-BR")}
                       </span>
-                      {redemption.sentAt && (
-                        <span>Enviado: {new Date(redemption.sentAt).toLocaleDateString("pt-BR")}</span>
-                      )}
                       {redemption.deliveredAt && (
                         <span>Entregue: {new Date(redemption.deliveredAt).toLocaleDateString("pt-BR")}</span>
                       )}
@@ -1280,15 +1262,6 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
                   <div className="flex flex-col gap-1.5 shrink-0">
                     {redemption.status === "pending" && (
                       <button
-                        onClick={() => handleStatusChange(redemption._id, "sent")}
-                        disabled={updatingId === redemption._id}
-                        className="clay-button-secondary px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1"
-                      >
-                        <Truck className="w-3 h-3" /> Enviar
-                      </button>
-                    )}
-                    {redemption.status === "sent" && (
-                      <button
                         onClick={() => handleStatusChange(redemption._id, "delivered")}
                         disabled={updatingId === redemption._id}
                         className="clay-button-secondary px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1 text-green-600"
@@ -1296,7 +1269,7 @@ function PrizeRedemptionsView({ businessId }: { businessId: string }) {
                         <CheckCircle2 className="w-3 h-3" /> Entregue
                       </button>
                     )}
-                    {redemption.status !== "pending" && (
+                    {redemption.status === "delivered" && (
                       <button
                         onClick={() => handleStatusChange(redemption._id, "pending")}
                         disabled={updatingId === redemption._id}
