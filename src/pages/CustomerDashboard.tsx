@@ -1,9 +1,111 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw, LogOut, PartyPopper } from "lucide-react";
+
+/* ─── Native DOM Prize Overlay (outside React tree) ─────────────── */
+
+let _prizeEl: HTMLDivElement | null = null;
+
+function ensurePrizeContainer(): HTMLDivElement {
+  if (_prizeEl && document.body.contains(_prizeEl)) return _prizeEl;
+  _prizeEl = document.createElement("div");
+  _prizeEl.id = "freebuff-prize-overlay";
+  _prizeEl.style.cssText = "position:fixed;inset:0;z-index:999999;display:none;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);";
+  _prizeEl.addEventListener("click", (e) => {
+    if (e.target === _prizeEl) hidePrize();
+  });
+  document.body.appendChild(_prizeEl);
+  return _prizeEl;
+}
+
+function showPrizeOverlay(data: {
+  position: number;
+  prize: { message: string; isPrize: boolean } | null;
+  totalRevealed: number;
+  totalStamps: number;
+  currentProgress: number;
+  cyclesCompleted: number;
+  justCompleted: boolean;
+  rewardDescription: string;
+  customerName: string;
+}, brandColor: string, customerId?: string) {
+  const el = ensurePrizeContainer();
+  const isCycleComplete = data.justCompleted;
+  const isPrize = data.prize?.isPrize;
+  const stampMessage = data.prize?.message || "Selo coletado!";
+  const remaining = data.totalStamps - data.currentProgress;
+
+  let icon: string, badgeText: string, title: string;
+  if (isCycleComplete) {
+    icon = "🎉"; badgeText = "Ciclo completo!"; title = "Parabéns! 🏆";
+  } else if (isPrize) {
+    icon = "🎁"; badgeText = "Prêmio desbloqueado!"; title = "Parabéns!";
+  } else {
+    icon = "⭐"; badgeText = `Selo ${data.position + 1}`; title = stampMessage;
+  }
+
+  const cardBg = isCycleComplete
+    ? `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`
+    : isPrize
+      ? `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`
+      : `linear-gradient(135deg, ${brandColor}12, ${brandColor}05)`;
+  const cardBorder = isCycleComplete ? `${brandColor}40` : isPrize ? `${brandColor}35` : `${brandColor}25`;
+
+  const showRewardCard = isCycleComplete || isPrize;
+  const btnText = isCycleComplete ? "🎉 Incrível!" : isPrize ? "🎁 Obrigado!" : "Continuar";
+
+  el.innerHTML = `
+    <div style="width:100%;max-width:24rem;text-align:center;background:${cardBg};border:2px solid ${cardBorder};border-radius:1.5rem;padding:2rem 1.5rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);position:relative;overflow:hidden;" onclick="event.stopPropagation()">
+      ${isCycleComplete ? `<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,${brandColor}25 0%,transparent 70%);pointer-events:none;border-radius:1.5rem;"></div>` : ""}
+      <div style="font-size:${isCycleComplete ? "4rem" : "3.5rem"};margin-bottom:0.75rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));position:relative;">${icon}</div>
+      <div style="display:inline-flex;align-items:center;gap:0.375rem;padding:0.375rem 1rem;font-size:0.75rem;font-weight:700;border-radius:9999px;background:${brandColor}20;color:${brandColor};margin-bottom:0.75rem;position:relative;">${badgeText}</div>
+      <p style="font-weight:700;font-size:${isCycleComplete ? "1.5rem" : "1.25rem"};margin-bottom:0.25rem;color:oklch(0.2 0.02 60);position:relative;">${title}</p>
+      ${!isCycleComplete ? `<p style="font-size:0.875rem;color:oklch(0.5 0.01 60);line-height:1.6;margin-bottom:1rem;position:relative;">${stampMessage}</p>` : ""}
+      ${showRewardCard ? `
+        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg,${brandColor}15,${brandColor}08);border:2px solid ${brandColor}30;box-shadow:0 8px 24px ${brandColor}15;position:relative;">
+          <div style="font-size:2.5rem;margin-bottom:0.5rem;">${isCycleComplete ? "🎁" : "🌟"}</div>
+          <p style="font-size:0.625rem;color:oklch(0.5 0.01 60);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem;">${isCycleComplete ? "Sua recompensa" : "Prêmio deste selo"}</p>
+          <p style="font-size:1.125rem;font-weight:700;color:${brandColor};">${isCycleComplete ? data.rewardDescription : stampMessage}</p>
+        </div>
+      ` : ""}
+      ${!isCycleComplete && !isPrize && remaining > 0 ? `<p style="font-size:0.75rem;color:oklch(0.5 0.01 60);margin-bottom:1rem;position:relative;">🎯 Faltam ${remaining} selo(s) para completar o cartão</p>` : ""}
+      ${!isCycleComplete && !isPrize && remaining <= 0 ? `<p style="font-size:0.75rem;color:oklch(0.5 0.01 60);margin-bottom:1rem;position:relative;">🎉 Último selo coletado!</p>` : ""}
+      ${isCycleComplete ? `
+        <div style="border-radius:0.75rem;padding:0.75rem;text-align:center;margin-bottom:1rem;background:${brandColor}08;border:1px solid ${brandColor}15;position:relative;">
+          <p style="font-size:0.75rem;font-weight:600;color:${brandColor};">Apresente este prêmio no estabelecimento para resgatar</p>
+        </div>
+      ` : ""}
+      <button onclick="window.__freebuff_dismiss_prize()" style="width:100%;padding:0.75rem 1.5rem;font-size:0.875rem;font-weight:600;background:${brandColor};color:white;border:none;border-radius:0.75rem;cursor:pointer;position:relative;">${btnText}</button>
+      ${!isCycleComplete && remaining <= 0 && customerId ? `<a href="/customer/${customerId}" style="display:block;margin-top:0.5rem;padding:0.625rem 1.5rem;font-size:0.875rem;font-weight:600;color:${brandColor};border:2px solid ${brandColor}40;border-radius:0.75rem;text-decoration:none;position:relative;">Voltar para minha área</a>` : ""}
+    </div>
+  `;
+  el.style.display = "flex";
+
+  // Add a small entrance animation
+  const card = el.firstElementChild as HTMLElement | null;
+  if (card) {
+    card.style.opacity = "0";
+    card.style.transform = "scale(0.9)";
+    card.style.transition = "opacity 0.3s ease-out, transform 0.3s ease-out";
+    requestAnimationFrame(() => {
+      card.style.opacity = "1";
+      card.style.transform = "scale(1)";
+    });
+  }
+}
+
+function hidePrize() {
+  if (_prizeEl) {
+    _prizeEl.style.display = "none";
+  }
+}
+
+// Make hidePrize callable from inline onclick
+(window as any).__freebuff_dismiss_prize = hidePrize;
+
+/* ─── Main Component ────────────────────────────── */
 
 export default function CustomerDashboard() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -17,18 +119,6 @@ export default function CustomerDashboard() {
     }
   });
   const [collectingCardId, setCollectingCardId] = useState<string | null>(null);
-  const [showPrize, setShowPrize] = useState(false);
-  const [lastReveal, setLastReveal] = useState<{
-    position: number;
-    prize: { message: string; isPrize: boolean } | null;
-    totalRevealed: number;
-    totalStamps: number;
-    currentProgress: number;
-    cyclesCompleted: number;
-    justCompleted: boolean;
-    rewardDescription: string;
-    customerName: string;
-  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const revealNext = useMutation(api.publicCustomers.revealNextForCustomer);
 
@@ -52,7 +142,17 @@ export default function CustomerDashboard() {
     }
   }, [customerInfo, customerPhone]);
 
-  const handleCollect = async (loyaltyCardId: string) => {
+  // Cleanup native overlay on unmount
+  useEffect(() => {
+    return () => {
+      if (_prizeEl && document.body.contains(_prizeEl)) {
+        document.body.removeChild(_prizeEl);
+        _prizeEl = null;
+      }
+    };
+  }, []);
+
+  const handleCollect = useCallback(async (loyaltyCardId: string) => {
     if (!customerId || !customerPhone || collectingCardId) return;
     setCollectingCardId(loyaltyCardId);
     setError(null);
@@ -62,14 +162,17 @@ export default function CustomerDashboard() {
         loyaltyCardId: loyaltyCardId as any,
         phone: customerPhone,
       });
-      setLastReveal(result);
-      setShowPrize(true);
+      const brandColor = customerInfo?.brandColor || "var(--clay-orange)";
+      // Show native DOM overlay — completely outside React's rendering
+      requestAnimationFrame(() => {
+        showPrizeOverlay(result, brandColor, customerId);
+      });
     } catch (err: any) {
       setError(err?.data?.message || err?.message || "Não foi possível coletar o selo");
     } finally {
       setCollectingCardId(null);
     }
-  };
+  }, [customerId, customerPhone, collectingCardId, revealNext, customerInfo]);
 
   const handleLogout = () => {
     if (customerId) localStorage.removeItem(`freebuff_customer_${customerId}`);
@@ -147,327 +250,96 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <>
-      <main className="min-h-screen bg-background px-4 py-8">
-        <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
-        <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
+    <main className="min-h-screen bg-background px-4 py-8">
+      <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
+      <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
 
-        <div className="max-w-lg mx-auto relative z-10">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div
-              className="w-16 h-16 mx-auto mb-3 rounded-3xl flex items-center justify-center text-3xl clay-badge"
-              style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}
-            >
-              {customerInfo?.logoEmoji || "⭐"}
-            </div>
-            <h1 className="text-2xl font-bold mb-1">
-              Olá, {customerInfo?.name?.split(" ")[0] || "cliente"}! 👋
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              {customerInfo?.businessName ? `${customerInfo.businessName} · ` : ""}
-              Acompanhe seus selos e prêmios
-            </p>
+      <div className="max-w-lg mx-auto relative z-10">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div
+            className="w-16 h-16 mx-auto mb-3 rounded-3xl flex items-center justify-center text-3xl clay-badge"
+            style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}
+          >
+            {customerInfo?.logoEmoji || "⭐"}
+          </div>
+          <h1 className="text-2xl font-bold mb-1">
+            Olá, {customerInfo?.name?.split(" ")[0] || "cliente"}! 👋
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {customerInfo?.businessName ? `${customerInfo.businessName} · ` : ""}
+            Acompanhe seus selos e prêmios
+          </p>
 
-            {totalCyclesCompleted > 0 && (
-              <div className="mt-3">
-                <div
-                  className="clay-badge px-4 py-2 text-xs font-bold inline-flex items-center gap-2"
-                  style={{ background: `${brandColor}15`, color: brandColor }}
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  {totalCyclesCompleted} cartão(ões) completo(s) — continue acumulando!
-                </div>
-              </div>
-            )}
-
-            {currentBatch?.rewardDescription && (
+          {totalCyclesCompleted > 0 && (
+            <div className="mt-3">
               <div
-                className="rounded-2xl p-5 text-center mt-4 relative overflow-hidden"
+                className="clay-badge px-4 py-2 text-xs font-bold inline-flex items-center gap-2"
+                style={{ background: `${brandColor}15`, color: brandColor }}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {totalCyclesCompleted} cartão(ões) completo(s) — continue acumulando!
+              </div>
+            </div>
+          )}
+
+          {currentBatch?.rewardDescription && (
+            <div
+              className="rounded-2xl p-5 text-center mt-4 relative overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}06)`,
+                border: `2px solid ${brandColor}25`,
+              }}
+            >
+              <div
+                className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center text-white clay-badge"
                 style={{
-                  background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}06)`,
-                  border: `2px solid ${brandColor}25`,
+                  background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
+                  boxShadow: `0 4px 12px ${brandColor}30`,
                 }}
               >
-                <div
-                  className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center text-white clay-badge"
-                  style={{
-                    background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
-                    boxShadow: `0 4px 12px ${brandColor}30`,
-                  }}
-                >
-                  <Gift className="w-7 h-7" />
-                </div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
-                  Recompensa do cartão
-                </p>
-                <p className="text-lg font-bold mb-1" style={{ color: brandColor }}>
-                  {currentBatch.rewardDescription}
-                </p>
-                {currentBatch.cyclesCompleted > 0 && (
-                  <p className="text-xs text-muted-foreground font-medium">
-                    {currentBatch.cyclesCompleted}x conquistado{currentBatch.cyclesCompleted > 1 ? "s" : ""}
-                  </p>
-                )}
+                <Gift className="w-7 h-7" />
               </div>
-            )}
-          </div>
-
-          {currentBatch && (
-            <CurrentCard
-              batch={currentBatch}
-              brandColor={brandColor}
-              collecting={collectingCardId === currentBatch.loyaltyCardId}
-              onCollect={() => handleCollect(currentBatch.loyaltyCardId)}
-            />
-          )}
-
-          {error && (
-            <div className="clay-badge mt-4 px-4 py-3 text-sm text-center font-semibold text-red-500" style={{ background: "rgba(239,68,68,0.08)" }}>
-              {error}
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+                Recompensa do cartão
+              </p>
+              <p className="text-lg font-bold mb-1" style={{ color: brandColor }}>
+                {currentBatch.rewardDescription}
+              </p>
+              {currentBatch.cyclesCompleted > 0 && (
+                <p className="text-xs text-muted-foreground font-medium">
+                  {currentBatch.cyclesCompleted}x conquistado{currentBatch.cyclesCompleted > 1 ? "s" : ""}
+                </p>
+              )}
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="clay-button-secondary w-full mt-6 py-3 text-sm font-semibold flex items-center justify-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair da minha área
-          </button>
         </div>
-      </main>
 
-      {/* Prize overlay — portal renders on document.body */}
-      {createPortal(
-        <PrizeOverlay
-          show={showPrize}
-          reveal={lastReveal}
-          brandColor={brandColor}
-          onDismiss={() => { setShowPrize(false); setLastReveal(null); }}
-        />,
-        document.body,
-      )}
-    </>
-  );
-}
-
-/* ─── Prize Overlay (all levels) ────────────────── */
-
-function PrizeOverlay({
-  show,
-  reveal,
-  brandColor,
-  onDismiss,
-}: {
-  show: boolean;
-  reveal: {
-    position: number;
-    prize: { message: string; isPrize: boolean } | null;
-    totalRevealed: number;
-    totalStamps: number;
-    currentProgress: number;
-    cyclesCompleted: number;
-    justCompleted: boolean;
-    rewardDescription: string;
-    customerName: string;
-  } | null;
-  brandColor: string;
-  onDismiss: () => void;
-}) {
-  if (!reveal) return null;
-
-  const isCycleComplete = reveal.justCompleted;
-  const isPrize = reveal.prize?.isPrize;
-  const stampMessage = reveal.prize?.message || "Selo coletado!";
-  const remaining = reveal.totalStamps - reveal.currentProgress;
-
-  // Determine the display content based on level
-  let icon: string;
-  let badgeText: string;
-  let title: string;
-  let description: string;
-  let cardBg: string;
-  let cardBorder: string;
-
-  if (isCycleComplete) {
-    icon = "🎉";
-    badgeText = "Ciclo completo!";
-    title = "Parabéns! 🏆";
-    description = "Você completou todas as etapas do cartão!";
-    cardBg = `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`;
-    cardBorder = `${brandColor}40`;
-  } else if (isPrize) {
-    icon = "🎁";
-    badgeText = "Prêmio desbloqueado!";
-    title = "Parabéns!";
-    description = stampMessage;
-    cardBg = `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`;
-    cardBorder = `${brandColor}35`;
-  } else {
-    icon = "⭐";
-    badgeText = `Selo ${reveal.position + 1}`;
-    title = stampMessage;
-    description = remaining > 0
-      ? `Faltam ${remaining} selo(s) para completar o cartão`
-      : "Cartão completo!";
-    cardBg = `linear-gradient(135deg, ${brandColor}12, ${brandColor}05)`;
-    cardBorder = `${brandColor}25`;
-  }
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 99999,
-        display: show ? "flex" : "none",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-        background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(6px)",
-      }}
-      onClick={onDismiss}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "24rem",
-          textAlign: "center",
-          background: cardBg,
-          border: `2px solid ${cardBorder}`,
-          borderRadius: "1.5rem",
-          padding: "2rem 1.5rem",
-          boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Decorative burst for cycle complete */}
-        {isCycleComplete && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: `radial-gradient(circle at 50% 30%, ${brandColor}25 0%, transparent 70%)`,
-              pointerEvents: "none",
-              borderRadius: "1.5rem",
-            }}
+        {currentBatch && (
+          <CurrentCard
+            batch={currentBatch}
+            brandColor={brandColor}
+            collecting={collectingCardId === currentBatch.loyaltyCardId}
+            onCollect={() => handleCollect(currentBatch.loyaltyCardId)}
           />
         )}
 
-        {/* Icon */}
-        <div style={{ fontSize: isCycleComplete ? "4rem" : "3.5rem", marginBottom: "0.75rem", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))", position: "relative" }}>
-          {icon}
-        </div>
-
-        {/* Badge */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.375rem",
-            padding: "0.375rem 1rem",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            borderRadius: "9999px",
-            background: `${brandColor}20`,
-            color: brandColor,
-            marginBottom: "0.75rem",
-            position: "relative",
-          }}
-        >
-          {isCycleComplete && <PartyPopper style={{ width: "0.875rem", height: "0.875rem" }} />}
-          {badgeText}
-        </div>
-
-        {/* Title */}
-        <p style={{ fontWeight: 700, fontSize: isCycleComplete ? "1.5rem" : "1.25rem", marginBottom: "0.25rem", color: "oklch(0.2 0.02 60)", position: "relative" }}>
-          {title}
-        </p>
-
-        {/* Description */}
-        {!isCycleComplete && (
-          <p style={{ fontSize: "0.875rem", color: "oklch(0.5 0.01 60)", lineHeight: 1.6, marginBottom: "1rem", position: "relative" }}>
-            {description}
-          </p>
-        )}
-
-        {/* Reward card — shown for cycle complete and prizes */}
-        {(isCycleComplete || isPrize) && (
-          <div
-            style={{
-              borderRadius: "1rem",
-              padding: "1.25rem",
-              textAlign: "center",
-              marginBottom: "1rem",
-              background: `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`,
-              border: `2px solid ${brandColor}30`,
-              boxShadow: `0 8px 24px ${brandColor}15`,
-              position: "relative",
-            }}
-          >
-            <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>
-              {isCycleComplete ? "🎁" : "🌟"}
-            </div>
-            <p style={{ fontSize: "0.625rem", color: "oklch(0.5 0.01 60)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, marginBottom: "0.25rem" }}>
-              {isCycleComplete ? "Sua recompensa" : "Prêmio deste selo"}
-            </p>
-            <p style={{ fontSize: "1.125rem", fontWeight: 700, color: brandColor }}>
-              {isCycleComplete ? reveal.rewardDescription : stampMessage}
-            </p>
+        {error && (
+          <div className="clay-badge mt-4 px-4 py-3 text-sm text-center font-semibold text-red-500" style={{ background: "rgba(239,68,68,0.08)" }}>
+            {error}
           </div>
         )}
 
-        {/* Info for regular stamps */}
-        {!isCycleComplete && !isPrize && remaining > 0 && (
-          <p style={{ fontSize: "0.75rem", color: "oklch(0.5 0.01 60)", marginBottom: "1rem", position: "relative" }}>
-            🎯 {description}
-          </p>
-        )}
-
-        {/* Cycle complete extra info */}
-        {isCycleComplete && (
-          <div
-            style={{
-              borderRadius: "0.75rem",
-              padding: "0.75rem",
-              textAlign: "center",
-              marginBottom: "1rem",
-              background: `${brandColor}08`,
-              border: `1px solid ${brandColor}15`,
-              position: "relative",
-            }}
-          >
-            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: brandColor }}>
-              Apresente este prêmio no estabelecimento para resgatar
-            </p>
-          </div>
-        )}
-
-        {/* Button */}
         <button
-          onClick={onDismiss}
-          style={{
-            width: "100%",
-            padding: "0.75rem 1.5rem",
-            fontSize: "0.875rem",
-            fontWeight: 600,
-            background: brandColor,
-            color: "white",
-            border: "none",
-            borderRadius: "0.75rem",
-            cursor: "pointer",
-            position: "relative",
-          }}
+          type="button"
+          onClick={handleLogout}
+          className="clay-button-secondary w-full mt-6 py-3 text-sm font-semibold flex items-center justify-center gap-2"
         >
-          {isCycleComplete ? "🎉 Incrível!" : isPrize ? "🎁 Obrigado!" : "Continuar"}
+          <LogOut className="w-4 h-4" />
+          Sair da minha área
         </button>
       </div>
-    </div>
+    </main>
   );
 }
 
