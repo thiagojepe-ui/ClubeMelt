@@ -226,12 +226,98 @@ export default function CustomerDashboard() {
       <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
         <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
         <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
-        <div className="clay-card p-10 text-center max-w-sm relative z-10">
-          <CookieLogo size={64} className="mx-auto mb-4" />
-          <h1 className="text-xl font-bold mb-2">Nenhum carimbo ainda</h1>
-          <p className="text-muted-foreground text-sm">
-            Aguarde o estabelecimento enviar links para você coletar selos. Eles aparecerão aqui!
-          </p>
+
+        <div className="w-full max-w-md relative z-10">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <CookieLogo size={64} className="mx-auto mb-3" />
+            <h1 className="text-2xl font-bold mb-1">
+              Olá, {customerInfo?.name?.split(" ")[0] || "cliente"}! 👋
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {customerInfo?.businessName ? `${customerInfo.businessName} · ` : ""}
+              Bem-vindo(a) ao nosso programa de fidelidade!
+            </p>
+          </div>
+
+          {/* Welcome card */}
+          <div className="clay-float p-8 text-center relative overflow-hidden">
+            <div
+              className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-15 blur-3xl"
+              style={{ background: brandColor }}
+            />
+            <div className="relative z-10">
+              <div className="text-5xl mb-4">🍪</div>
+              <h2 className="text-lg font-bold mb-2" style={{ color: brandColor }}>
+                Seu cartão fidelidade está pronto!
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                A cada compra você acumula selos. Junte todos e ganhe
+                <strong className="text-foreground"> prêmios exclusivos</strong>!
+              </p>
+              <div
+                className="rounded-2xl p-4 mt-5"
+                style={{
+                  background: c(brandColor, 8),
+                  border: `1px solid ${c(brandColor, 16)}`,
+                }}
+              >
+                <p className="text-xs text-muted-foreground">
+                  ✨ Seus selos aparecerão aqui assim que o estabelecimento lançar o primeiro.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="clay-card p-5 mt-4">
+            <h3 className="text-sm font-bold text-center mb-4" style={{ color: brandColor }}>
+              Conecte-se conosco
+            </h3>
+            <div className="space-y-3">
+              <a
+                href="https://wa.me/5516992594458"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="clay-button-secondary w-full py-3 text-sm font-semibold flex items-center justify-center gap-3"
+                style={{ color: brandColor }}
+              >
+                <MessageCircle className="w-5 h-5" />
+                WhatsApp
+                <span className="text-xs text-muted-foreground font-normal">• Fale conosco</span>
+              </a>
+              <a
+                href="https://instadelivery.com.br/meltcookies"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="clay-button-secondary w-full py-3 text-sm font-semibold flex items-center justify-center gap-3"
+                style={{ color: brandColor }}
+              >
+                <ExternalLink className="w-5 h-5" />
+                Fazer Pedido
+                <span className="text-xs text-muted-foreground font-normal">• InstaDelivery</span>
+              </a>
+              <a
+                href="https://instagram.com/meltcookies26"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="clay-button-secondary w-full py-3 text-sm font-semibold flex items-center justify-center gap-3"
+                style={{ color: brandColor }}
+              >
+                <Instagram className="w-5 h-5" />
+                @meltcookies26
+              </a>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="clay-button-secondary w-full mt-4 py-3 text-sm font-semibold flex items-center justify-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair da minha área
+          </button>
         </div>
       </main>
     );
