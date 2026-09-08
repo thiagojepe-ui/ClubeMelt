@@ -33,13 +33,26 @@ export default function CustomerRegister() {
         phone: phone.trim(),
       });
       if (!customer) {
+        // Phone exists — auto-login instead of showing error
+        const existing = await loginCustomer({
+          businessId: businessId as any,
+          phone: phone.trim(),
+        });
+        if (existing) {
+          localStorage.setItem(
+            `freebuff_customer_${existing._id}`,
+            JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
+          );
+          setTimeout(() => {
+            window.location.replace(`/customer/${existing._id}`);
+          }, 0);
+          return;
+        }
         setError("Erro ao cadastrar cliente");
         setLoading(false);
         return;
       }
       // Auto-login: store session and redirect directly to the customer area.
-      // Use setTimeout to defer navigation out of React's commit phase and
-      // avoid the removeChild DOM error.
       localStorage.setItem(
         `freebuff_customer_${customer._id}`,
         JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
@@ -48,7 +61,29 @@ export default function CustomerRegister() {
         window.location.replace(`/customer/${customer._id}`);
       }, 0);
     } catch (err: any) {
-      setError(err?.data?.message || err?.message || "Erro ao cadastrar");
+      const msg = err?.data?.message || err?.message || "Erro ao cadastrar";
+      // If phone already exists, silently log the customer in
+      if (msg.includes("já está cadastrado")) {
+        try {
+          const existing = await loginCustomer({
+            businessId: businessId as any,
+            phone: phone.trim(),
+          });
+          if (existing) {
+            localStorage.setItem(
+              `freebuff_customer_${existing._id}`,
+              JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
+            );
+            setTimeout(() => {
+              window.location.replace(`/customer/${existing._id}`);
+            }, 0);
+            return;
+          }
+        } catch {
+          // login also failed, fall through to error
+        }
+      }
+      setError(msg);
       setLoading(false);
     }
   };
