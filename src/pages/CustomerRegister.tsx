@@ -1,7 +1,7 @@
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Phone, Loader2, ArrowRight, LogIn } from "lucide-react";
 
 export default function CustomerRegister() {
@@ -20,9 +20,49 @@ export default function CustomerRegister() {
   const [error, setError] = useState<string | null>(null);
   const brandColor = business?.brandColor || "var(--clay-orange)";
 
+  // Pre-check: does this phone already exist for this business?
+  const normalizedPhone = phone.replace(/\D/g, "");
+  const existingCustomer = useQuery(
+    api.publicCustomers.findByPhone,
+    businessId && normalizedPhone.length >= 10
+      ? { businessId: businessId as any, phone: normalizedPhone }
+      : "skip",
+  );
+
+  // Clear error when switching modes or changing phone
+  useEffect(() => {
+    setError(null);
+  }, [mode, phone]);
+
+  const validatePhone = (raw: string): string | null => {
+    const digits = raw.replace(/\D/g, "");
+    if (digits.length < 10) {
+      return "Informe pelo menos 10 dígitos (DDD + número).";
+    }
+    if (digits.length > 11) {
+      return "Telefone inválido — máximo 11 dígitos.";
+    }
+    return null;
+  };
+
   const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!businessId || !name.trim() || !phone.trim()) return;
+
+    // Validate phone format
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+
+    // Pre-check: phone already exists?
+    if (existingCustomer) {
+      setError(
+        "Este telefone já está cadastrado. Clique em \"Já tenho cadastro — entrar\" para acessar sua conta.",
+      );
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -33,22 +73,7 @@ export default function CustomerRegister() {
         phone: phone.trim(),
       });
       if (!customer) {
-        // Phone exists — auto-login instead of showing error
-        const existing = await loginCustomer({
-          businessId: businessId as any,
-          phone: phone.trim(),
-        });
-        if (existing) {
-          localStorage.setItem(
-            `freebuff_customer_${existing._id}`,
-            JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
-          );
-          setTimeout(() => {
-            window.location.replace(`/customer/${existing._id}`);
-          }, 0);
-          return;
-        }
-        setError("Erro ao cadastrar cliente");
+        setError("Erro ao cadastrar cliente. Tente novamente.");
         setLoading(false);
         return;
       }
@@ -62,28 +87,13 @@ export default function CustomerRegister() {
       }, 0);
     } catch (err: any) {
       const msg = err?.data?.message || err?.message || "Erro ao cadastrar";
-      // If phone already exists, silently log the customer in
       if (msg.includes("já está cadastrado")) {
-        try {
-          const existing = await loginCustomer({
-            businessId: businessId as any,
-            phone: phone.trim(),
-          });
-          if (existing) {
-            localStorage.setItem(
-              `freebuff_customer_${existing._id}`,
-              JSON.stringify({ phone: phone.trim(), loggedAt: Date.now() }),
-            );
-            setTimeout(() => {
-              window.location.replace(`/customer/${existing._id}`);
-            }, 0);
-            return;
-          }
-        } catch {
-          // login also failed, fall through to error
-        }
+        setError(
+          "Este telefone já está cadastrado. Clique em \"Já tenho cadastro — entrar\" para acessar sua conta.",
+        );
+      } else {
+        setError(msg);
       }
-      setError(msg);
       setLoading(false);
     }
   };
@@ -91,6 +101,13 @@ export default function CustomerRegister() {
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!businessId || !phone.trim()) return;
+
+    // Validate phone format
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -101,6 +118,7 @@ export default function CustomerRegister() {
       });
       if (!customer) {
         setError("Telefone não encontrado. Faça seu cadastro primeiro.");
+        setLoading(false);
         return;
       }
 
@@ -149,6 +167,8 @@ export default function CustomerRegister() {
   }
 
   const isRegister = mode === "register";
+  // Show hint when user is in register mode and phone already exists
+  const phoneAlreadyExists = isRegister && existingCustomer !== null && normalizedPhone.length >= 10;
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
@@ -211,6 +231,20 @@ export default function CustomerRegister() {
                     required
                   />
                 </div>
+                {/* Phone already exists hint */}
+                {phoneAlreadyExists && (
+                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    Este telefone já está cadastrado.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setMode("login")}
+                      className="underline font-semibold"
+                    >
+                      Entrar
+                    </button>
+                  </p>
+                )}
               </div>
 
               {error && <p className="text-sm text-red-500 text-center">{error}</p>}
