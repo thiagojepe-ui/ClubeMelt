@@ -88,6 +88,28 @@ const schema = defineSchema(
       .index("by_loyalty_customer", ["loyaltyCardId", "customerId"])
       .index("by_token", ["token"])
       .index("by_batch_token", ["batchToken"]),
+
+    prizeRedemptions: defineTable({
+      businessId: v.id("businesses"),
+      customerId: v.id("customers"),
+      loyaltyCardId: v.id("loyaltyCards"),
+      rewardDescription: v.string(),
+      customerName: v.string(),
+      customerPhone: v.optional(v.string()),
+      cycleNumber: v.number(),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("sent"),
+        v.literal("delivered"),
+      ),
+      createdAt: v.number(),
+      sentAt: v.optional(v.number()),
+      deliveredAt: v.optional(v.number()),
+      note: v.optional(v.string()),
+    })
+      .index("by_business", ["businessId"])
+      .index("by_customer", ["customerId"])
+      .index("by_business_status", ["businessId", "status"]),
   },
   {
     schemaValidation: false,

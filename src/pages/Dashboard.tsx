@@ -20,10 +20,14 @@ import {
   Zap,
   Star,
   Loader2,
+  Gift,
+  Package,
+  CheckCircle2,
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 
-type DashboardView = "overview" | "setup" | "cards" | "customers" | "stamps";
+type DashboardView = "overview" | "setup" | "cards" | "customers" | "stamps" | "prizes";
 
 /* Shared clipboard helper — uses execCommand fallback for iframe contexts */
 async function copyTextToClipboard(text: string): Promise<boolean> {
@@ -115,7 +119,7 @@ export default function Dashboard() {
               <QuickStats businessId={business._id} />
 
               {/* Action Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                 <ActionCard
                   icon={<CreditCard className="w-6 h-6" />}
                   title="Cartões Fidelidade"
@@ -137,6 +141,13 @@ export default function Dashboard() {
                   color="bg-[oklch(0.88_0.06_50)]"
                   onClick={() => setView("stamps")}
                 />
+                <ActionCard
+                  icon={<Gift className="w-6 h-6" />}
+                  title="Prêmios"
+                  description="Controlar envio de prêmios"
+                  color="bg-[oklch(0.85_0.1_340)]"
+                  onClick={() => setView("prizes")}
+                />
               </div>
 
               {/* Sub-views */}
@@ -148,6 +159,9 @@ export default function Dashboard() {
               )}
               {view === "stamps" && (
                 <StampsView businessId={business._id} />
+              )}
+              {view === "prizes" && (
+                <PrizeRedemptionsView businessId={business._id} />
               )}
       </div>
     </main>
@@ -1099,6 +1113,203 @@ function StampsView({ businessId }: { businessId: string }) {
               );
             })}
           </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/* ─── Prize Redemptions View ────────────────────────── */
+
+function PrizeRedemptionsView({ businessId }: { businessId: string }) {
+  const redemptions = useQuery(api.prizeRedemptions.list, { businessId: businessId as any });
+  const counts = useQuery(api.prizeRedemptions.counts, { businessId: businessId as any });
+  const updateStatus = useMutation(api.prizeRedemptions.updateStatus);
+
+  const [filter, setFilter] = useState<"all" | "pending" | "sent" | "delivered">("all");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const list = redemptions ?? [];
+    if (filter === "all") return list;
+    return list.filter((r) => r.status === filter);
+  }, [redemptions, filter]);
+
+  const handleStatusChange = async (
+    redemptionId: string,
+    status: "pending" | "sent" | "delivered",
+  ) => {
+    setUpdatingId(redemptionId);
+    try {
+      await updateStatus({
+        redemptionId: redemptionId as any,
+        status,
+      });
+      toast.success(
+        status === "sent"
+          ? "Marcado como enviado!"
+          : status === "delivered"
+            ? "Marcado como entregue!"
+            : "Status atualizado",
+      );
+    } catch {
+      toast.error("Erro ao atualizar status");
+    }
+    setUpdatingId(null);
+  };
+
+  const statusConfig = {
+    pending: {
+      label: "Pendente",
+      color: "bg-amber-100 text-amber-700",
+      icon: <Package className="w-3.5 h-3.5" />,
+    },
+    sent: {
+      label: "Enviado",
+      color: "bg-blue-100 text-blue-700",
+      icon: <Truck className="w-3.5 h-3.5" />,
+    },
+    delivered: {
+      label: "Entregue",
+      color: "bg-green-100 text-green-700",
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+    },
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="mt-6"
+    >
+      <h2 className="text-lg font-bold mb-4">Prêmios</h2>
+
+      {/* Summary cards */}
+      {counts && (
+        <div className="grid grid-cols-4 gap-3 mb-4">
+          <button
+            onClick={() => setFilter("all")}
+            className={`clay-card p-4 text-center transition-all ${filter === "all" ? "ring-2 ring-primary/30" : ""}`}
+          >
+            <p className="text-2xl font-bold">{counts.total}</p>
+            <p className="text-xs text-muted-foreground font-medium">Total</p>
+          </button>
+          <button
+            onClick={() => setFilter("pending")}
+            className={`clay-card p-4 text-center transition-all ${filter === "pending" ? "ring-2 ring-amber-400/50" : ""}`}
+          >
+            <p className="text-2xl font-bold text-amber-600">{counts.pending}</p>
+            <p className="text-xs text-muted-foreground font-medium">Pendentes</p>
+          </button>
+          <button
+            onClick={() => setFilter("sent")}
+            className={`clay-card p-4 text-center transition-all ${filter === "sent" ? "ring-2 ring-blue-400/50" : ""}`}
+          >
+            <p className="text-2xl font-bold text-blue-600">{counts.sent}</p>
+            <p className="text-xs text-muted-foreground font-medium">Enviados</p>
+          </button>
+          <button
+            onClick={() => setFilter("delivered")}
+            className={`clay-card p-4 text-center transition-all ${filter === "delivered" ? "ring-2 ring-green-400/50" : ""}`}
+          >
+            <p className="text-2xl font-bold text-green-600">{counts.delivered}</p>
+            <p className="text-xs text-muted-foreground font-medium">Entregues</p>
+          </button>
+        </div>
+      )}
+
+      {/* List */}
+      {!redemptions ? (
+        <div className="clay-card p-12 text-center">
+          <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="clay-card p-12 text-center">
+          <Gift className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground">
+            {filter === "all"
+              ? "Nenhum prêmio registrado ainda. Prêmios são criados automaticamente quando um cliente completa o ciclo."
+              : `Nenhum prêmio ${filter === "pending" ? "pendente" : filter === "sent" ? "enviado" : "entregue"}.`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((redemption) => {
+            const sc = statusConfig[redemption.status];
+            return (
+              <div key={redemption._id} className="clay-card p-4">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                    style={{ background: "var(--clay-orange)" }}
+                  >
+                    {redemption.customerName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-sm truncate">
+                        {redemption.customerName}
+                      </p>
+                      <span
+                        className={`clay-badge px-2 py-0.5 text-[10px] font-semibold flex items-center gap-1 ${sc.color}`}
+                      >
+                        {sc.icon} {sc.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      🎁 {redemption.rewardDescription}
+                    </p>
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                      <span>Ciclo #{redemption.cycleNumber}</span>
+                      {redemption.customerPhone && <span>📱 {redemption.customerPhone}</span>}
+                      <span>
+                        {new Date(redemption.createdAt).toLocaleDateString("pt-BR")}
+                      </span>
+                      {redemption.sentAt && (
+                        <span>Enviado: {new Date(redemption.sentAt).toLocaleDateString("pt-BR")}</span>
+                      )}
+                      {redemption.deliveredAt && (
+                        <span>Entregue: {new Date(redemption.deliveredAt).toLocaleDateString("pt-BR")}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    {redemption.status === "pending" && (
+                      <button
+                        onClick={() => handleStatusChange(redemption._id, "sent")}
+                        disabled={updatingId === redemption._id}
+                        className="clay-button-secondary px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1"
+                      >
+                        <Truck className="w-3 h-3" /> Enviar
+                      </button>
+                    )}
+                    {redemption.status === "sent" && (
+                      <button
+                        onClick={() => handleStatusChange(redemption._id, "delivered")}
+                        disabled={updatingId === redemption._id}
+                        className="clay-button-secondary px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1 text-green-600"
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> Entregue
+                      </button>
+                    )}
+                    {redemption.status !== "pending" && (
+                      <button
+                        onClick={() => handleStatusChange(redemption._id, "pending")}
+                        disabled={updatingId === redemption._id}
+                        className="clay-button-secondary px-3 py-1.5 text-[11px] font-semibold flex items-center gap-1 text-amber-600"
+                      >
+                        <Package className="w-3 h-3" /> Reabrir
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </motion.div>

@@ -168,6 +168,23 @@ export const revealNextForCustomer = mutation({
 
     const totalRevealed = revealedBefore + nextStamp.count;
     const currentProgress = totalRevealed % card.totalStamps;
+    const justCompleted = currentProgress === 0;
+    const cyclesCompleted = Math.floor(totalRevealed / card.totalStamps);
+
+    // Register prize redemption when cycle is completed
+    if (justCompleted && totalRevealed > 0) {
+      await ctx.db.insert("prizeRedemptions", {
+        businessId: customer.businessId,
+        customerId: customer._id,
+        loyaltyCardId: card._id,
+        rewardDescription: card.rewardDescription,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        cycleNumber: cyclesCompleted,
+        status: "pending",
+        createdAt: Date.now(),
+      });
+    }
 
     return {
       position,
@@ -175,8 +192,8 @@ export const revealNextForCustomer = mutation({
       totalRevealed,
       totalStamps: card.totalStamps,
       currentProgress,
-      cyclesCompleted: Math.floor(totalRevealed / card.totalStamps),
-      justCompleted: currentProgress === 0,
+      cyclesCompleted,
+      justCompleted,
       rewardDescription: card.rewardDescription,
       customerName: customer.name,
     };
