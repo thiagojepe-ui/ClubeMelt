@@ -48,7 +48,6 @@ function showCardPrizeOverlay(data: any, brandColor: string, customerId?: string
       : `linear-gradient(135deg, #FFFCF8, #FFFAF5)`;
   const cardBorder = isCycleComplete ? c(brandColor, 40) : isPrize ? c(brandColor, 35) : c(brandColor, 25);
 
-  const showRewardCard = isCycleComplete || isPrize;
   const btnText = isCycleComplete ? "🎉 Incrível!" : isPrize ? "🎁 Obrigado!" : "Continuar";
 
   el.innerHTML = `
@@ -56,23 +55,14 @@ function showCardPrizeOverlay(data: any, brandColor: string, customerId?: string
       ${isCycleComplete ? `<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,${c(brandColor, 18)} 0%,transparent 70%);pointer-events:none;border-radius:1.5rem;"></div>` : ""}
       <div style="font-size:${isCycleComplete ? "4rem" : "3.5rem"};margin-bottom:0.75rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));position:relative;">${icon}</div>
       <div style="display:inline-flex;align-items:center;gap:0.375rem;padding:0.375rem 1rem;font-size:0.75rem;font-weight:700;border-radius:9999px;background:${c(brandColor, 15)};color:${brandColor};margin-bottom:0.75rem;position:relative;">${badgeText}</div>
-      <p style="font-weight:700;font-size:${isCycleComplete ? "1.5rem" : "1.25rem"};margin-bottom:0.25rem;color:oklch(0.2 0.02 60);position:relative;">${title}</p>
-      ${!isCycleComplete ? `<p style="font-size:0.875rem;color:oklch(0.5 0.01 60);line-height:1.6;margin-bottom:1rem;position:relative;">${stampMessage}</p>` : ""}
-      ${showRewardCard ? `
-        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg, ${c(brandColor, 20)}, ${c(brandColor, 10)});border:2px solid ${c(brandColor, 35)};box-shadow:0 8px 24px ${c(brandColor, 20)};position:relative;">
-          <div style="font-size:2.5rem;margin-bottom:0.5rem;">${isCycleComplete ? "🎁" : "🌟"}</div>
-          <p style="font-size:0.625rem;color:oklch(0.5 0.01 60);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem;">${isCycleComplete ? "Sua recompensa" : "Prêmio deste selo"}</p>
-          <p style="font-size:1.125rem;font-weight:700;color:${brandColor};">${isCycleComplete ? data.rewardDescription : stampMessage}</p>
-        </div>
-      ` : ""}
-      ${!isCycleComplete && !isPrize && data.batchPending > 0 ? `<p style="font-size:0.75rem;color:oklch(0.5 0.01 60);margin-bottom:1rem;position:relative;">🎯 Ainda tem ${data.batchPending} selo(s) — colete o próximo!</p>` : ""}
-      ${isCycleComplete ? `
-        <div style="border-radius:0.75rem;padding:0.75rem;text-align:center;margin-bottom:1rem;background:${c(brandColor, 6)};border:1px solid ${c(brandColor, 12)};position:relative;">
-          <p style="font-size:0.75rem;font-weight:600;color:${brandColor};">Apresente este prêmio no estabelecimento para resgatar</p>
-        </div>
-      ` : ""}
+      <p style="font-weight:700;font-size:${isCycleComplete ? "1.5rem" : "1.25rem"};margin-bottom:${isCycleComplete || isPrize ? "0.25rem" : "1rem"};color:oklch(0.2 0.02 60);position:relative;">${title}</p>
+      ${isCycleComplete ? `\n        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg, ${c(brandColor, 20)}, ${c(brandColor, 10)});border:2px solid ${c(brandColor, 35)};box-shadow:0 8px 24px ${c(brandColor, 20)};position:relative;">\n          <div style="font-size:2.5rem;margin-bottom:0.5rem;">🎁</div>\n          <p style="font-size:0.625rem;color:oklch(0.5 0.01 60);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem;">Sua recompensa</p>\n          <p style="font-size:1.125rem;font-weight:700;color:${brandColor};">${data.rewardDescription}</p>\n        </div>\n      ` : ""}
+      ${isPrize ? `\n        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg, ${c(brandColor, 20)}, ${c(brandColor, 10)});border:2px solid ${c(brandColor, 35)};box-shadow:0 8px 24px ${c(brandColor, 20)};position:relative;">\n          <div style="font-size:2.5rem;margin-bottom:0.5rem;">🌟</div>\n          <p style="font-size:0.625rem;color:oklch(0.5 0.01 60);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem;">Prêmio deste selo</p>\n          <p style="font-size:1.125rem;font-weight:700;color:${brandColor};">${stampMessage}</p>\n        </div>\n      ` : ""}
+      ${!isCycleComplete && !isPrize && remaining > 0 ? `<p style="font-size:0.75rem;color:oklch(0.5 0.01 60);margin-bottom:1rem;position:relative;">🎯 Faltam ${remaining} selo(s) para completar o cartão</p>` : ""}
+      ${!isCycleComplete && !isPrize && remaining <= 0 ? `<p style="font-size:0.75rem;color:oklch(0.5 0.01 60);margin-bottom:1rem;position:relative;">🎉 Último selo coletado!</p>` : ""}
+      ${isCycleComplete ? `\n        <div style="border-radius:0.75rem;padding:0.75rem;text-align:center;margin-bottom:1rem;background:${c(brandColor, 6)};border:1px solid ${c(brandColor, 12)};position:relative;">\n          <p style="font-size:0.75rem;font-weight:600;color:${brandColor};">Apresente este prêmio no estabelecimento para resgatar</p>\n        </div>\n      ` : ""}
       <button onclick="window.__freebuff_dismiss_card_prize()" style="width:100%;padding:0.75rem 1.5rem;font-size:0.875rem;font-weight:600;background:${brandColor};color:white;border:none;border-radius:0.75rem;cursor:pointer;position:relative;">${btnText}</button>
-      ${!isCycleComplete && data.batchPending === 0 && customerId ? `<a href="/customer/${customerId}" style="display:block;margin-top:0.5rem;padding:0.625rem 1.5rem;font-size:0.875rem;font-weight:600;color:${brandColor};border:2px solid ${c(brandColor, 30)};border-radius:0.75rem;text-decoration:none;position:relative;">Voltar para minha área</a>` : ""}
+      ${!isCycleComplete && remaining <= 0 && customerId ? `<a href="/customer/${customerId}" style="display:block;margin-top:0.5rem;padding:0.625rem 1.5rem;font-size:0.875rem;font-weight:600;color:${brandColor};border:2px solid ${c(brandColor, 30)};border-radius:0.75rem;text-decoration:none;position:relative;">Voltar para minha área</a>` : ""}
     </div>
   `;
   el.style.display = "flex";
