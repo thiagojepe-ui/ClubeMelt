@@ -2,7 +2,8 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useEffect, useState, useCallback } from "react";
-import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw, LogOut, PartyPopper, MessageCircle, ExternalLink, Instagram } from "lucide-react";
+import { Star, Gift, Loader2, MousePointerClick, RotateCcw, LogOut, PartyPopper, MessageCircle, ExternalLink, Instagram } from "lucide-react";
+import CookieLogo from "@/components/CookieLogo";
 
 /* ─── Helper: opacity via color-mix (works with any CSS color) ─── */
 function c(color: string, pct: number): string {
@@ -226,9 +227,7 @@ export default function CustomerDashboard() {
         <div className="absolute top-20 left-1/4 w-64 h-64 rounded-full opacity-20 blur-3xl" style={{ background: brandColor }} />
         <div className="absolute bottom-20 right-1/4 w-56 h-56 bg-clay-blue rounded-full opacity-15 blur-3xl" />
         <div className="clay-card p-10 text-center max-w-sm relative z-10">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-3xl flex items-center justify-center text-3xl clay-badge" style={{ background: c(brandColor, 10) }}>
-            <Cookie className="w-8 h-8" style={{ color: brandColor }} />
-          </div>
+          <CookieLogo size={64} className="mx-auto mb-4" />
           <h1 className="text-xl font-bold mb-2">Nenhum carimbo ainda</h1>
           <p className="text-muted-foreground text-sm">
             Aguarde o estabelecimento enviar links para você coletar selos. Eles aparecerão aqui!
@@ -246,12 +245,7 @@ export default function CustomerDashboard() {
       <div className="max-w-lg mx-auto relative z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <div
-            className="w-16 h-16 mx-auto mb-3 rounded-3xl flex items-center justify-center text-3xl clay-badge"
-            style={{ background: c(brandColor, 10), boxShadow: `0 4px 12px ${c(brandColor, 10)}` }}
-          >
-            {customerInfo?.logoEmoji || "⭐"}
-          </div>
+          <CookieLogo size={64} className="mx-auto mb-3" />
           <h1 className="text-2xl font-bold mb-1">
             Olá, {customerInfo?.name?.split(" ")[0] || "cliente"}! 👋
           </h1>
@@ -415,15 +409,7 @@ function CurrentCard({
 
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-4">
-          <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl clay-badge"
-            style={{
-              background: c(cardBrandColor, 10),
-              boxShadow: `0 3px 8px ${c(cardBrandColor, 10)}`,
-            }}
-          >
-            {batch.logoEmoji || "🏪"}
-          </div>
+          <CookieLogo size={48} className="shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground">
               {batch.businessName}

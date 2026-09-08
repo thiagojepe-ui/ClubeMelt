@@ -1,6 +1,9 @@
 import { useId } from "react";
 
-/** MeltCookies brand logo — a soft clay-style chocolate chip cookie. */
+/**
+ * MeltCookies official brand logo:
+ * cream circular badge + bitten-cookie line art + MELT COOKIES wordmark.
+ */
 export default function CookieLogo({
   className,
   size = 36,
@@ -9,10 +12,11 @@ export default function CookieLogo({
   size?: number;
 }) {
   const uid = useId().replace(/:/g, "");
-  const bodyId = `cookie-body-${uid}`;
+  const biteId = `melt-bite-${uid}`;
+
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 100 100"
       width={size}
       height={size}
       className={className}
@@ -20,33 +24,60 @@ export default function CookieLogo({
       aria-hidden="true"
     >
       <defs>
-        <radialGradient id={bodyId} cx="35%" cy="28%" r="80%">
-          <stop offset="0%" stopColor="#F4CEA0" />
-          <stop offset="55%" stopColor="#E2AA72" />
-          <stop offset="100%" stopColor="#C98A58" />
-        </radialGradient>
+        <mask id={biteId}>
+          <rect x="0" y="0" width="100" height="100" fill="white" />
+          <circle cx="62.5" cy="21.5" r="6.2" fill="black" />
+          <circle cx="60.5" cy="32.5" r="5.6" fill="black" />
+        </mask>
       </defs>
-      {/* Cookie body */}
-      <circle cx="32" cy="32" r="29" fill={`url(#${bodyId})`} />
-      <circle
-        cx="32"
-        cy="32"
-        r="29"
-        stroke="#A96A3A"
-        strokeOpacity="0.35"
-        strokeWidth="2"
-      />
-      <circle cx="32" cy="32" r="24.5" stroke="#A96A3A" strokeOpacity="0.12" strokeWidth="1.5" />
+
+      {/* Cream badge */}
+      <circle cx="50" cy="50" r="49" fill="#F9E9D2" />
+      <circle cx="50" cy="50" r="48.2" stroke="#EAD3B4" strokeWidth="1.2" fill="none" />
+
+      {/* Bitten cookie line art (bite carved on the upper right) */}
+      <g mask={`url(#${biteId})`}>
+        <circle
+          cx="49"
+          cy="27.5"
+          r="12.5"
+          stroke="#4A2C17"
+          strokeWidth="2.6"
+          fill="none"
+        />
+      </g>
       {/* Chocolate chips */}
-      <circle cx="21" cy="19" r="4.2" fill="#5B3A24" />
-      <circle cx="41.5" cy="16" r="3.5" fill="#5B3A24" />
-      <circle cx="32" cy="30" r="4.4" fill="#4F3121" />
-      <circle cx="17" cy="37" r="3.2" fill="#5B3A24" />
-      <circle cx="44.5" cy="33" r="4" fill="#4F3121" />
-      <circle cx="25.5" cy="46" r="3.4" fill="#5B3A24" />
-      <circle cx="38.5" cy="47.5" r="3" fill="#4F3121" />
-      {/* Soft highlight */}
-      <ellipse cx="23" cy="17.5" rx="9.5" ry="5" fill="#FFFFFF" opacity="0.28" />
+      <circle cx="44" cy="21.5" r="1.8" fill="#4A2C17" />
+      <circle cx="52.5" cy="20" r="1.5" fill="#4A2C17" />
+      <circle cx="43.5" cy="30.5" r="1.6" fill="#4A2C17" />
+      <circle cx="51" cy="34.5" r="1.7" fill="#4A2C17" />
+      <circle cx="55" cy="28" r="1.3" fill="#4A2C17" />
+
+      {/* Wordmark */}
+      <text
+        x="50"
+        y="67"
+        textAnchor="middle"
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontSize="21"
+        fontWeight="700"
+        letterSpacing="1.5"
+        fill="#4A2C17"
+      >
+        MELT
+      </text>
+      <text
+        x="50"
+        y="80.5"
+        textAnchor="middle"
+        fontFamily="'Helvetica Neue', Arial, sans-serif"
+        fontSize="7.4"
+        fontWeight="600"
+        letterSpacing="2.8"
+        fill="#4A2C17"
+      >
+        COOKIES
+      </text>
     </svg>
   );
 }

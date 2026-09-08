@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState, useEffect } from "react";
 import { User, Phone, Loader2, ArrowRight, LogIn } from "lucide-react";
+import CookieLogo from "@/components/CookieLogo";
 
 export default function CustomerRegister() {
   const { businessId } = useParams<{ businessId: string }>();
@@ -180,12 +181,7 @@ export default function CustomerRegister() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-6">
-          <div
-            className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge"
-            style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}
-          >
-            {business.logoEmoji || "🏪"}
-          </div>
+          <CookieLogo size={80} className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold">{business.name}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             {isRegister ? "Cadastre-se para acompanhar seus selos" : "Entre para ver seus selos e prêmios"}

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useState, useCallback, useEffect } from "react";
 import { Star, Gift, Loader2 } from "lucide-react";
+import CookieLogo from "@/components/CookieLogo";
 
 /* ─── Helper: opacity via color-mix (works with any CSS color) ─── */
 function c(color: string, pct: number): string {
@@ -175,12 +176,7 @@ export default function CardView() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-6">
-          <div
-            className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge"
-            style={{ background: c(brandColor, 10), boxShadow: `0 4px 12px ${c(brandColor, 10)}` }}
-          >
-            {business.logoEmoji || "🏪"}
-          </div>
+          <CookieLogo size={80} className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold">{business.name}</h1>
           {customer?.name && <p className="text-muted-foreground mt-1">Olá, {customer.name}!</p>}
         </div>
