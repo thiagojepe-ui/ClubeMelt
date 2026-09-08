@@ -4,6 +4,11 @@ import { useParams } from "react-router";
 import { useState, useCallback, useEffect } from "react";
 import { Star, Gift, Loader2 } from "lucide-react";
 
+/* ─── Helper: opacity via color-mix (works with any CSS color) ─── */
+function c(color: string, pct: number): string {
+  return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+}
+
 /* ─── Native DOM Prize Overlay (outside React tree) ─────────────── */
 
 let _cardPrizeEl: HTMLDivElement | null = null;
@@ -37,24 +42,24 @@ function showCardPrizeOverlay(data: any, brandColor: string, customerId?: string
   }
 
   const cardBg = isCycleComplete
-    ? `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`
+    ? `linear-gradient(135deg, ${c(brandColor, 12)}, ${c(brandColor, 5)})`
     : isPrize
-      ? `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`
-      : `linear-gradient(135deg, ${brandColor}12, ${brandColor}05)`;
-  const cardBorder = isCycleComplete ? `${brandColor}40` : isPrize ? `${brandColor}35` : `${brandColor}25`;
+      ? `linear-gradient(135deg, ${c(brandColor, 10)}, ${c(brandColor, 4)})`
+      : `linear-gradient(135deg, ${c(brandColor, 8)}, ${c(brandColor, 3)})`;
+  const cardBorder = c(brandColor, isCycleComplete ? 30 : isPrize ? 25 : 18);
 
   const showRewardCard = isCycleComplete || isPrize;
   const btnText = isCycleComplete ? "🎉 Incrível!" : isPrize ? "🎁 Obrigado!" : "Continuar";
 
   el.innerHTML = `
     <div style="width:100%;max-width:24rem;text-align:center;background:${cardBg};border:2px solid ${cardBorder};border-radius:1.5rem;padding:2rem 1.5rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);position:relative;overflow:hidden;" onclick="event.stopPropagation()">
-      ${isCycleComplete ? `<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,${brandColor}25 0%,transparent 70%);pointer-events:none;border-radius:1.5rem;"></div>` : ""}
+      ${isCycleComplete ? `<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,${c(brandColor, 18)} 0%,transparent 70%);pointer-events:none;border-radius:1.5rem;"></div>` : ""}
       <div style="font-size:${isCycleComplete ? "4rem" : "3.5rem"};margin-bottom:0.75rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));position:relative;">${icon}</div>
-      <div style="display:inline-flex;align-items:center;gap:0.375rem;padding:0.375rem 1rem;font-size:0.75rem;font-weight:700;border-radius:9999px;background:${brandColor}20;color:${brandColor};margin-bottom:0.75rem;position:relative;">${badgeText}</div>
+      <div style="display:inline-flex;align-items:center;gap:0.375rem;padding:0.375rem 1rem;font-size:0.75rem;font-weight:700;border-radius:9999px;background:${c(brandColor, 15)};color:${brandColor};margin-bottom:0.75rem;position:relative;">${badgeText}</div>
       <p style="font-weight:700;font-size:${isCycleComplete ? "1.5rem" : "1.25rem"};margin-bottom:0.25rem;color:oklch(0.2 0.02 60);position:relative;">${title}</p>
       ${!isCycleComplete ? `<p style="font-size:0.875rem;color:oklch(0.5 0.01 60);line-height:1.6;margin-bottom:1rem;position:relative;">${stampMessage}</p>` : ""}
       ${showRewardCard ? `
-        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg,${brandColor}15,${brandColor}08);border:2px solid ${brandColor}30;box-shadow:0 8px 24px ${brandColor}15;position:relative;">
+        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg,${c(brandColor, 10)},${c(brandColor, 4)});border:2px solid ${c(brandColor, 22)};box-shadow:0 8px 24px ${c(brandColor, 12)};position:relative;">
           <div style="font-size:2.5rem;margin-bottom:0.5rem;">${isCycleComplete ? "🎁" : "🌟"}</div>
           <p style="font-size:0.625rem;color:oklch(0.5 0.01 60);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem;">${isCycleComplete ? "Sua recompensa" : "Prêmio deste selo"}</p>
           <p style="font-size:1.125rem;font-weight:700;color:${brandColor};">${isCycleComplete ? data.rewardDescription : stampMessage}</p>
@@ -62,12 +67,12 @@ function showCardPrizeOverlay(data: any, brandColor: string, customerId?: string
       ` : ""}
       ${!isCycleComplete && !isPrize && data.batchPending > 0 ? `<p style="font-size:0.75rem;color:oklch(0.5 0.01 60);margin-bottom:1rem;position:relative;">🎯 Ainda tem ${data.batchPending} selo(s) — colete o próximo!</p>` : ""}
       ${isCycleComplete ? `
-        <div style="border-radius:0.75rem;padding:0.75rem;text-align:center;margin-bottom:1rem;background:${brandColor}08;border:1px solid ${brandColor}15;position:relative;">
+        <div style="border-radius:0.75rem;padding:0.75rem;text-align:center;margin-bottom:1rem;background:${c(brandColor, 6)};border:1px solid ${c(brandColor, 12)};position:relative;">
           <p style="font-size:0.75rem;font-weight:600;color:${brandColor};">Apresente este prêmio no estabelecimento para resgatar</p>
         </div>
       ` : ""}
       <button onclick="window.__freebuff_dismiss_card_prize()" style="width:100%;padding:0.75rem 1.5rem;font-size:0.875rem;font-weight:600;background:${brandColor};color:white;border:none;border-radius:0.75rem;cursor:pointer;position:relative;">${btnText}</button>
-      ${!isCycleComplete && data.batchPending === 0 && customerId ? `<a href="/customer/${customerId}" style="display:block;margin-top:0.5rem;padding:0.625rem 1.5rem;font-size:0.875rem;font-weight:600;color:${brandColor};border:2px solid ${brandColor}40;border-radius:0.75rem;text-decoration:none;position:relative;">Voltar para minha área</a>` : ""}
+      ${!isCycleComplete && data.batchPending === 0 && customerId ? `<a href="/customer/${customerId}" style="display:block;margin-top:0.5rem;padding:0.625rem 1.5rem;font-size:0.875rem;font-weight:600;color:${brandColor};border:2px solid ${c(brandColor, 30)};border-radius:0.75rem;text-decoration:none;position:relative;">Voltar para minha área</a>` : ""}
     </div>
   `;
   el.style.display = "flex";
@@ -105,7 +110,6 @@ export default function CardView() {
   const [revealing, setRevealing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cleanup native overlay on unmount
   useEffect(() => {
     return () => {
       if (_cardPrizeEl && document.body.contains(_cardPrizeEl)) {
@@ -124,7 +128,6 @@ export default function CardView() {
       const result = await revealNext({ batchToken });
       const brandColor = data?.business?.brandColor || "var(--clay-orange)";
       const customerId = data?.customer?._id;
-      // Show native DOM overlay — completely outside React's rendering
       requestAnimationFrame(() => {
         showCardPrizeOverlay(result, brandColor, customerId);
       });
@@ -184,7 +187,7 @@ export default function CardView() {
         <div className="text-center mb-6">
           <div
             className="w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl clay-badge"
-            style={{ background: `${brandColor}18`, boxShadow: `0 4px 12px ${brandColor}15` }}
+            style={{ background: c(brandColor, 10), boxShadow: `0 4px 12px ${c(brandColor, 10)}` }}
           >
             {business.logoEmoji || "🏪"}
           </div>
@@ -204,7 +207,7 @@ export default function CardView() {
               <div className="text-center mb-2">
                 <span
                   className="clay-badge px-3 py-1 text-[10px] font-bold inline-flex items-center gap-1"
-                  style={{ background: `${brandColor}15`, color: brandColor }}
+                  style={{ background: c(brandColor, 10), color: brandColor }}
                 >
                   🏆 Ciclo {displayCyclesCompleted} completo{displayCyclesCompleted > 1 ? "s" : ""}
                 </span>
@@ -290,7 +293,7 @@ export default function CardView() {
             className="w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center text-white clay-badge"
             style={{
               background: `linear-gradient(135deg, ${brandColor}, oklch(0.65 0.12 30))`,
-              boxShadow: `0 3px 8px ${brandColor}25`,
+              boxShadow: `0 3px 8px ${c(brandColor, 18)}`,
             }}
           >
             <Gift className="w-5 h-5" />
