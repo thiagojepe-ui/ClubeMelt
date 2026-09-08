@@ -131,6 +131,17 @@ export const remove = mutation({
       throw new Error("Not authorized");
     }
 
+    // Clean up stamps associated with this card to prevent orphaned data
+    const stamps = await ctx.db
+      .query("stamps")
+      .withIndex("by_loyalty_card", (q) =>
+        q.eq("loyaltyCardId", args.loyaltyCardId),
+      )
+      .collect();
+    for (const stamp of stamps) {
+      await ctx.db.delete(stamp._id);
+    }
+
     await ctx.db.delete(args.loyaltyCardId);
   },
 });

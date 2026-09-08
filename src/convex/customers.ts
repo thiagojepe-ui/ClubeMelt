@@ -105,6 +105,15 @@ export const remove = mutation({
       await ctx.db.delete(stamp._id);
     }
 
+    // Remove orphaned prize redemptions for this customer
+    const redemptions = await ctx.db
+      .query("prizeRedemptions")
+      .withIndex("by_customer", (q) => q.eq("customerId", args.customerId))
+      .collect();
+    for (const r of redemptions) {
+      await ctx.db.delete(r._id);
+    }
+
     await ctx.db.delete(args.customerId);
   },
 });
