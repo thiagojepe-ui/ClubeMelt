@@ -53,11 +53,11 @@ function showPrizeOverlay(data: {
 
   // Solid background colors that work with any brandColor format
   const cardBg = isCycleComplete
-    ? `linear-gradient(135deg, ${c(brandColor, 12)}, ${c(brandColor, 5)})`
+    ? `linear-gradient(135deg, #FFF8F0, #FFF5ED)`
     : isPrize
-      ? `linear-gradient(135deg, ${c(brandColor, 10)}, ${c(brandColor, 4)})`
-      : `linear-gradient(135deg, ${c(brandColor, 8)}, ${c(brandColor, 3)})`;
-  const cardBorder = c(brandColor, isCycleComplete ? 30 : isPrize ? 25 : 18);
+      ? `linear-gradient(135deg, #FFFAF5, #FFF8F0)`
+      : `linear-gradient(135deg, #FFFCF8, #FFFAF5)`;
+  const cardBorder = isCycleComplete ? c(brandColor, 40) : isPrize ? c(brandColor, 35) : c(brandColor, 25);
 
   const showRewardCard = isCycleComplete || isPrize;
   const btnText = isCycleComplete ? "🎉 Incrível!" : isPrize ? "🎁 Obrigado!" : "Continuar";
@@ -70,7 +70,7 @@ function showPrizeOverlay(data: {
       <p style="font-weight:700;font-size:${isCycleComplete ? "1.5rem" : "1.25rem"};margin-bottom:0.25rem;color:oklch(0.2 0.02 60);position:relative;">${title}</p>
       ${!isCycleComplete ? `<p style="font-size:0.875rem;color:oklch(0.5 0.01 60);line-height:1.6;margin-bottom:1rem;position:relative;">${stampMessage}</p>` : ""}
       ${showRewardCard ? `
-        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg,${c(brandColor, 10)},${c(brandColor, 4)});border:2px solid ${c(brandColor, 22)};box-shadow:0 8px 24px ${c(brandColor, 12)};position:relative;">
+        <div style="border-radius:1rem;padding:1.25rem;text-align:center;margin-bottom:1rem;background:linear-gradient(135deg, ${c(brandColor, 20)}, ${c(brandColor, 10)});border:2px solid ${c(brandColor, 35)};box-shadow:0 8px 24px ${c(brandColor, 20)};position:relative;">
           <div style="font-size:2.5rem;margin-bottom:0.5rem;">${isCycleComplete ? "🎁" : "🌟"}</div>
           <p style="font-size:0.625rem;color:oklch(0.5 0.01 60);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:0.25rem;">${isCycleComplete ? "Sua recompensa" : "Prêmio deste selo"}</p>
           <p style="font-size:1.125rem;font-weight:700;color:${brandColor};">${isCycleComplete ? data.rewardDescription : stampMessage}</p>
