@@ -271,33 +271,49 @@ export default function CustomerDashboard() {
             <div className="relative z-10">
               {lastReveal.justCompleted ? (
                 <>
+                  {/* Celebratory burst background */}
+                  <div
+                    className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at 50% 30%, ${brandColor}20 0%, transparent 70%)`,
+                    }}
+                  />
                   <div className="text-5xl mb-3">🎉</div>
                   <div
-                    className="clay-badge px-3 py-1 text-xs font-semibold mb-3 inline-flex items-center gap-1.5"
-                    style={{ background: `${brandColor}15`, color: brandColor }}
+                    className="clay-badge px-4 py-1.5 text-xs font-bold mb-3 inline-flex items-center gap-1.5"
+                    style={{ background: `${brandColor}20`, color: brandColor }}
                   >
                     <PartyPopper className="w-3.5 h-3.5" />
                     Ciclo completo!
                   </div>
-                  <p className="font-bold text-xl mb-1">Parabéns!</p>
+                  <p className="font-bold text-2xl mb-1">Parabéns! 🏆</p>
                   <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                    Você completou o cartão e desbloqueou sua recompensa!
+                    Você completou todas as etapas do cartão!
                   </p>
                   <div
-                    className="rounded-2xl p-4 text-center mb-4"
+                    className="rounded-2xl p-5 text-center mb-4 relative overflow-hidden"
                     style={{
-                      background: `linear-gradient(135deg, ${brandColor}12, ${brandColor}06)`,
-                      border: `2px solid ${brandColor}25`,
+                      background: `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`,
+                      border: `2px solid ${brandColor}35`,
+                      boxShadow: `0 8px 24px ${brandColor}20`,
                     }}
                   >
-                    <div className="text-3xl mb-2">🎁</div>
-                    <p className="text-sm font-bold" style={{ color: brandColor }}>
+                    <div className="text-4xl mb-2">🎁</div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+                      Sua recompensa
+                    </p>
+                    <p className="text-lg font-bold" style={{ color: brandColor }}>
                       {lastReveal.rewardDescription}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Apresente este prêmio no estabelecimento para resgatar.
-                  </p>
+                  <div
+                    className="rounded-xl p-3 text-center mb-4"
+                    style={{ background: `${brandColor}08`, border: `1px solid ${brandColor}15` }}
+                  >
+                    <p className="text-xs font-semibold" style={{ color: brandColor }}>
+                      Apresente este prêmio no estabelecimento para resgatar
+                    </p>
+                  </div>
                 </>
               ) : lastReveal.prize?.isPrize ? (
                 <>

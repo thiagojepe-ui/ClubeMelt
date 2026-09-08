@@ -17,7 +17,7 @@ export const upsert = mutation({
       throw new Error("Not authorized");
     }
 
-    // Try to find existing customer by phone within this business
+    // Prevent duplicate phone registrations within the same business
     if (args.phone) {
       const normalized = args.phone.replace(/\D/g, "");
       const existing = await ctx.db
@@ -26,7 +26,11 @@ export const upsert = mutation({
           q.eq("businessId", args.businessId).eq("phone", normalized),
         )
         .first();
-      if (existing) return existing._id;
+      if (existing) {
+        throw new Error(
+          "Já existe um cliente com este telefone. Edite o cadastro existente ou use outro número.",
+        );
+      }
     }
 
     return ctx.db.insert("customers", {
