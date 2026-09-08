@@ -239,135 +239,235 @@ export default function CustomerDashboard() {
         </div>
       </main>
 
-      {/* Prize overlay — portal renders on document.body to bypass stacking contexts */}
+      {/* Prize overlay — portal renders on document.body */}
       {createPortal(
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 99999,
-            display: showPrize && lastReveal ? "flex" : "none",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-            background: "rgba(0,0,0,0.45)",
-            backdropFilter: "blur(6px)",
-          }}
-          onClick={() => { setShowPrize(false); setLastReveal(null); }}
-        >
-          {lastReveal && (
-            <div
-              className="w-full max-w-sm text-center"
-              style={{
-                background: lastReveal.prize?.isPrize || lastReveal.justCompleted
-                  ? `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`
-                  : "oklch(0.96 0.005 90)",
-                border: `2px solid ${lastReveal.prize?.isPrize || lastReveal.justCompleted ? brandColor + "40" : "oklch(0.9 0.01 90 / 0.5)"}`,
-                borderRadius: "1.5rem",
-                padding: "2rem 1.5rem",
-                boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative z-10">
-                {lastReveal.justCompleted ? (
-                  <>
-                    <div
-                      className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
-                      style={{
-                        background: `radial-gradient(circle at 50% 30%, ${brandColor}25 0%, transparent 70%)`,
-                      }}
-                    />
-                    <div className="text-6xl mb-3" style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))" }}>🎉</div>
-                    <div
-                      className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold mb-3"
-                      style={{ background: `${brandColor}20`, color: brandColor, borderRadius: "9999px" }}
-                    >
-                      <PartyPopper className="w-3.5 h-3.5" />
-                      Ciclo completo!
-                    </div>
-                    <p className="font-bold text-2xl mb-1" style={{ color: "oklch(0.2 0.02 60)" }}>Parabéns! 🏆</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                      Você completou todas as etapas do cartão!
-                    </p>
-                    <div
-                      className="rounded-2xl p-5 text-center mb-4"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`,
-                        border: `2px solid ${brandColor}35`,
-                        boxShadow: `0 8px 24px ${brandColor}20`,
-                      }}
-                    >
-                      <div className="text-4xl mb-2">🎁</div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">
-                        Sua recompensa
-                      </p>
-                      <p className="text-lg font-bold" style={{ color: brandColor }}>
-                        {lastReveal.rewardDescription}
-                      </p>
-                    </div>
-                    <div
-                      className="rounded-xl p-3 text-center mb-4"
-                      style={{ background: `${brandColor}08`, border: `1px solid ${brandColor}15` }}
-                    >
-                      <p className="text-xs font-semibold" style={{ color: brandColor }}>
-                        Apresente este prêmio no estabelecimento para resgatar
-                      </p>
-                    </div>
-                  </>
-                ) : lastReveal.prize?.isPrize ? (
-                  <>
-                    <div className="text-5xl mb-3">🎁</div>
-                    <div
-                      className="inline-flex items-center px-3 py-1 text-xs font-semibold mb-2"
-                      style={{ background: `${brandColor}15`, color: brandColor, borderRadius: "9999px" }}
-                    >
-                      Prêmio!
-                    </div>
-                    <p className="font-bold text-lg mb-1">Parabéns!</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                      {lastReveal.prize?.message}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-5xl mb-3">⭐</div>
-                    <p className="font-bold text-lg mb-1">Selo coletado!</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                      {lastReveal.prize?.message || "Selo coletado com sucesso!"}
-                    </p>
-                  </>
-                )}
-
-                {!lastReveal.justCompleted && (
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Faltam {lastReveal.totalStamps - lastReveal.currentProgress} selo(s) para completar o cartão
-                  </p>
-                )}
-
-                <button
-                  onClick={() => { setShowPrize(false); setLastReveal(null); }}
-                  className="w-full py-3 text-sm font-semibold"
-                  style={{
-                    background: brandColor,
-                    color: "white",
-                    borderRadius: "0.75rem",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "0.875rem",
-                    fontWeight: 600,
-                    padding: "0.75rem 1.5rem",
-                  }}
-                >
-                  {lastReveal.justCompleted ? "🎉 Incrível!" : "Continuar"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>,
+        <PrizeOverlay
+          show={showPrize}
+          reveal={lastReveal}
+          brandColor={brandColor}
+          onDismiss={() => { setShowPrize(false); setLastReveal(null); }}
+        />,
         document.body,
       )}
     </>
+  );
+}
+
+/* ─── Prize Overlay (all levels) ────────────────── */
+
+function PrizeOverlay({
+  show,
+  reveal,
+  brandColor,
+  onDismiss,
+}: {
+  show: boolean;
+  reveal: {
+    position: number;
+    prize: { message: string; isPrize: boolean } | null;
+    totalRevealed: number;
+    totalStamps: number;
+    currentProgress: number;
+    cyclesCompleted: number;
+    justCompleted: boolean;
+    rewardDescription: string;
+    customerName: string;
+  } | null;
+  brandColor: string;
+  onDismiss: () => void;
+}) {
+  if (!reveal) return null;
+
+  const isCycleComplete = reveal.justCompleted;
+  const isPrize = reveal.prize?.isPrize;
+  const stampMessage = reveal.prize?.message || "Selo coletado!";
+  const remaining = reveal.totalStamps - reveal.currentProgress;
+
+  // Determine the display content based on level
+  let icon: string;
+  let badgeText: string;
+  let title: string;
+  let description: string;
+  let cardBg: string;
+  let cardBorder: string;
+
+  if (isCycleComplete) {
+    icon = "🎉";
+    badgeText = "Ciclo completo!";
+    title = "Parabéns! 🏆";
+    description = "Você completou todas as etapas do cartão!";
+    cardBg = `linear-gradient(135deg, ${brandColor}18, ${brandColor}08)`;
+    cardBorder = `${brandColor}40`;
+  } else if (isPrize) {
+    icon = "🎁";
+    badgeText = "Prêmio desbloqueado!";
+    title = "Parabéns!";
+    description = stampMessage;
+    cardBg = `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`;
+    cardBorder = `${brandColor}35`;
+  } else {
+    icon = "⭐";
+    badgeText = `Selo ${reveal.position + 1}`;
+    title = stampMessage;
+    description = remaining > 0
+      ? `Faltam ${remaining} selo(s) para completar o cartão`
+      : "Cartão completo!";
+    cardBg = `linear-gradient(135deg, ${brandColor}12, ${brandColor}05)`;
+    cardBorder = `${brandColor}25`;
+  }
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        display: show ? "flex" : "none",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(0,0,0,0.45)",
+        backdropFilter: "blur(6px)",
+      }}
+      onClick={onDismiss}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "24rem",
+          textAlign: "center",
+          background: cardBg,
+          border: `2px solid ${cardBorder}`,
+          borderRadius: "1.5rem",
+          padding: "2rem 1.5rem",
+          boxShadow: "0 25px 50px rgba(0,0,0,0.25)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Decorative burst for cycle complete */}
+        {isCycleComplete && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: `radial-gradient(circle at 50% 30%, ${brandColor}25 0%, transparent 70%)`,
+              pointerEvents: "none",
+              borderRadius: "1.5rem",
+            }}
+          />
+        )}
+
+        {/* Icon */}
+        <div style={{ fontSize: isCycleComplete ? "4rem" : "3.5rem", marginBottom: "0.75rem", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.15))", position: "relative" }}>
+          {icon}
+        </div>
+
+        {/* Badge */}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.375rem",
+            padding: "0.375rem 1rem",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            borderRadius: "9999px",
+            background: `${brandColor}20`,
+            color: brandColor,
+            marginBottom: "0.75rem",
+            position: "relative",
+          }}
+        >
+          {isCycleComplete && <PartyPopper style={{ width: "0.875rem", height: "0.875rem" }} />}
+          {badgeText}
+        </div>
+
+        {/* Title */}
+        <p style={{ fontWeight: 700, fontSize: isCycleComplete ? "1.5rem" : "1.25rem", marginBottom: "0.25rem", color: "oklch(0.2 0.02 60)", position: "relative" }}>
+          {title}
+        </p>
+
+        {/* Description */}
+        {!isCycleComplete && (
+          <p style={{ fontSize: "0.875rem", color: "oklch(0.5 0.01 60)", lineHeight: 1.6, marginBottom: "1rem", position: "relative" }}>
+            {description}
+          </p>
+        )}
+
+        {/* Reward card — shown for cycle complete and prizes */}
+        {(isCycleComplete || isPrize) && (
+          <div
+            style={{
+              borderRadius: "1rem",
+              padding: "1.25rem",
+              textAlign: "center",
+              marginBottom: "1rem",
+              background: `linear-gradient(135deg, ${brandColor}15, ${brandColor}08)`,
+              border: `2px solid ${brandColor}30`,
+              boxShadow: `0 8px 24px ${brandColor}15`,
+              position: "relative",
+            }}
+          >
+            <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>
+              {isCycleComplete ? "🎁" : "🌟"}
+            </div>
+            <p style={{ fontSize: "0.625rem", color: "oklch(0.5 0.01 60)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, marginBottom: "0.25rem" }}>
+              {isCycleComplete ? "Sua recompensa" : "Prêmio deste selo"}
+            </p>
+            <p style={{ fontSize: "1.125rem", fontWeight: 700, color: brandColor }}>
+              {isCycleComplete ? reveal.rewardDescription : stampMessage}
+            </p>
+          </div>
+        )}
+
+        {/* Info for regular stamps */}
+        {!isCycleComplete && !isPrize && remaining > 0 && (
+          <p style={{ fontSize: "0.75rem", color: "oklch(0.5 0.01 60)", marginBottom: "1rem", position: "relative" }}>
+            🎯 {description}
+          </p>
+        )}
+
+        {/* Cycle complete extra info */}
+        {isCycleComplete && (
+          <div
+            style={{
+              borderRadius: "0.75rem",
+              padding: "0.75rem",
+              textAlign: "center",
+              marginBottom: "1rem",
+              background: `${brandColor}08`,
+              border: `1px solid ${brandColor}15`,
+              position: "relative",
+            }}
+          >
+            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: brandColor }}>
+              Apresente este prêmio no estabelecimento para resgatar
+            </p>
+          </div>
+        )}
+
+        {/* Button */}
+        <button
+          onClick={onDismiss}
+          style={{
+            width: "100%",
+            padding: "0.75rem 1.5rem",
+            fontSize: "0.875rem",
+            fontWeight: 600,
+            background: brandColor,
+            color: "white",
+            border: "none",
+            borderRadius: "0.75rem",
+            cursor: "pointer",
+            position: "relative",
+          }}
+        >
+          {isCycleComplete ? "🎉 Incrível!" : isPrize ? "🎁 Obrigado!" : "Continuar"}
+        </button>
+      </div>
+    </div>
   );
 }
 
