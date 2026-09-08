@@ -2,7 +2,7 @@ import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useParams } from "react-router";
 import { useEffect, useState, useCallback } from "react";
-import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw, LogOut, PartyPopper } from "lucide-react";
+import { Star, Gift, Loader2, MousePointerClick, Cookie, RotateCcw, LogOut, PartyPopper, MessageCircle, ExternalLink, Instagram } from "lucide-react";
 
 /* ─── Helper: opacity via color-mix (works with any CSS color) ─── */
 function c(color: string, pct: number): string {
@@ -318,6 +318,47 @@ export default function CustomerDashboard() {
             {error}
           </div>
         )}
+
+        {/* Quick Links */}
+        <div className="clay-card p-5 mt-6">
+          <h3 className="text-sm font-bold text-center mb-4" style={{ color: brandColor }}>
+            Conecte-se conosco
+          </h3>
+          <div className="space-y-3">
+            <a
+              href="https://wa.me/5516992594458"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="clay-button-secondary w-full py-3 text-sm font-semibold flex items-center justify-center gap-3"
+              style={{ color: brandColor }}
+            >
+              <MessageCircle className="w-5 h-5" />
+              WhatsApp
+              <span className="text-xs text-muted-foreground font-normal">• Fale conosco</span>
+            </a>
+            <a
+              href="https://instadelivery.com.br/meltcookies"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="clay-button-secondary w-full py-3 text-sm font-semibold flex items-center justify-center gap-3"
+              style={{ color: brandColor }}
+            >
+              <ExternalLink className="w-5 h-5" />
+              Fazer Pedido
+              <span className="text-xs text-muted-foreground font-normal">• InstaDelivery</span>
+            </a>
+            <a
+              href="https://instagram.com/meltcookies26"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="clay-button-secondary w-full py-3 text-sm font-semibold flex items-center justify-center gap-3"
+              style={{ color: brandColor }}
+            >
+              <Instagram className="w-5 h-5" />
+              @meltcookies26
+            </a>
+          </div>
+        </div>
 
         <button
           type="button"
