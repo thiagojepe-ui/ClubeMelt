@@ -86,6 +86,14 @@ export const getByUser = query({
   },
 });
 
+/** Public: returns the single business of the app (used by the /clube short link). */
+export const getAnyPublic = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("businesses").first();
+  },
+});
+
 export const update = mutation({
   args: {
     name: v.string(),

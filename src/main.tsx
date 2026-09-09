@@ -2,10 +2,12 @@ import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
+import { ConvexReactClient, useQuery } from "convex/react";
+import { Loader2 } from "lucide-react";
 import React, { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
+import { api } from "@/convex/_generated/api";
 import "./index.css";
 
 // Eagerly load all routes to prevent removeChild DOM errors from lazy Suspense transitions
@@ -15,6 +17,28 @@ import NotFound from "./pages/NotFound.tsx";
 import CustomerRegister from "./pages/CustomerRegister.tsx";
 import CustomerDashboard from "./pages/CustomerDashboard.tsx";
 import CardView from "./pages/CardView.tsx";
+
+/** Short link: /clube → customer registration page of the single business. */
+function ClubeRedirect() {
+  const business = useQuery(api.businesses.getAnyPublic);
+  if (business === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!business) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Link indisponível no momento. Tente novamente mais tarde.
+        </p>
+      </div>
+    );
+  }
+  return <Navigate to={`/register/${business._id}`} replace />;
+}
 
 /** Hard guard so runtime errors never leave the preview as a blank page. */
 class RootErrorBoundary extends React.Component<
@@ -119,6 +143,7 @@ createRoot(document.getElementById("root")!).render(
             />
             <Route path="/batch/:batchToken" element={<CardView />} />
             <Route path="/register/:businessId" element={<CustomerRegister />} />
+            <Route path="/clube" element={<ClubeRedirect />} />
             <Route path="/customer/:customerId" element={<CustomerDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
