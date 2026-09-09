@@ -62,7 +62,6 @@ export default function Dashboard() {
   const [view, setView] = useState<DashboardView>("overview");
 
   const business = useQuery(api.businesses.getByUser);
-  const ensureBusiness = useMutation(api.businesses.ensure);
   const syncUser = useMutation(api.admins.syncUser);
 
   // Re-link business on mount: fixes data loss after logout/login when the

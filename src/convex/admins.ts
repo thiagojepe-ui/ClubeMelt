@@ -125,14 +125,17 @@ export const syncUser = mutation({
     // Always update admin.userId to the current Convex user
     await ctx.db.patch(args.adminId, { userId });
 
-    // Find the business linked to this admin (try current userId first, then old one)
+    // 1) Try business linked to the current Convex user
     let business = await ctx.db
       .query("businesses")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
-    if (!business && admin.userId && admin.userId !== "pending" && admin.userId !== userId) {
-      // Business is still linked to the old Convex user — re-link it
+    if (business) return business._id;
+
+    // 2) Try business linked to the admin's previous userId (may differ after
+    //    the patch above if this is the first sync)
+    if (admin.userId && admin.userId !== "pending" && admin.userId !== userId) {
       business = await ctx.db
         .query("businesses")
         .withIndex("by_user", (q) => q.eq("userId", admin.userId as any))
@@ -144,19 +147,24 @@ export const syncUser = mutation({
       }
     }
 
-    if (!business) {
-      // No business exists at all — create one
-      const id = await ctx.db.insert("businesses", {
-        userId,
-        name: "MeltCookies",
-        brandColor: "#B5651D",
-        logoEmoji: "🍪",
-        createdAt: Date.now(),
-      });
-      return id;
+    // 3) Fallback: this is a single-business app. Find ANY business and
+    //    re-link it to the current user. This covers the case where the
+    //    admin was created with userId "pending" and the business was
+    //    linked to a now-orphaned anonymous Convex user.
+    business = await ctx.db.query("businesses").first();
+    if (business) {
+      await ctx.db.patch(business._id, { userId });
+      return business._id;
     }
 
-    return business._id;
+    // 4) Truly no business exists — create one
+    return ctx.db.insert("businesses", {
+      userId,
+      name: "MeltCookies",
+      brandColor: "#B5651D",
+      logoEmoji: "🍪",
+      createdAt: Date.now(),
+    });
   },
 });
 
