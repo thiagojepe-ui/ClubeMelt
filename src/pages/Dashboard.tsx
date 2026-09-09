@@ -623,7 +623,7 @@ function CustomersView({ businessId }: { businessId: string }) {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const registerUrl = `${window.location.origin}/register/${businessId}`;
+  const registerUrl = `${window.location.origin}/clube`;
 
   const handleCopyRegister = async () => {
     const ok = await copyTextToClipboard(registerUrl);
@@ -949,7 +949,7 @@ function StampsView({ businessId }: { businessId: string }) {
         customerId: selectedCustomer as any,
         count: stampCount,
       });
-      const url = `${window.location.origin}/register/${businessId}`;
+      const url = `${window.location.origin}/clube`;
       setGeneratedLink(url);
       toast.success(`${stampCount} carimbo(s) adicionado(s) ao cliente!`);
     } catch (err: any) {
