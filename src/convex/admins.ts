@@ -109,6 +109,58 @@ export const login = mutation({
 });
 
 /**
+ * Sync the admin's userId and business linkage to the current Convex session.
+ * Called after every anonymous sign-in so that the business record is always
+ * linked to the active Convex user, preventing data loss after logout/login.
+ */
+export const syncUser = mutation({
+  args: { adminId: v.id("admins") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const admin = await ctx.db.get(args.adminId);
+    if (!admin) throw new Error("Admin not found");
+
+    // Always update admin.userId to the current Convex user
+    await ctx.db.patch(args.adminId, { userId });
+
+    // Find the business linked to this admin (try current userId first, then old one)
+    let business = await ctx.db
+      .query("businesses")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    if (!business && admin.userId && admin.userId !== "pending" && admin.userId !== userId) {
+      // Business is still linked to the old Convex user — re-link it
+      business = await ctx.db
+        .query("businesses")
+        .withIndex("by_user", (q) => q.eq("userId", admin.userId as any))
+        .first();
+
+      if (business) {
+        await ctx.db.patch(business._id, { userId });
+        return business._id;
+      }
+    }
+
+    if (!business) {
+      // No business exists at all — create one
+      const id = await ctx.db.insert("businesses", {
+        userId,
+        name: "MeltCookies",
+        brandColor: "#B5651D",
+        logoEmoji: "🍪",
+        createdAt: Date.now(),
+      });
+      return id;
+    }
+
+    return business._id;
+  },
+});
+
+/**
  * Check if any admin exists in the system.
  * Used to determine if registration should be available.
  */

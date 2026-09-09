@@ -58,20 +58,23 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 }
 
 export default function Dashboard() {
-  const { signOut } = useAuth();
+  const { signOut, admin } = useAuth();
   const [view, setView] = useState<DashboardView>("overview");
 
   const business = useQuery(api.businesses.getByUser);
   const ensureBusiness = useMutation(api.businesses.ensure);
+  const syncUser = useMutation(api.admins.syncUser);
 
-  // The store is fixed: MeltCookies is auto-created on first visit.
+  // Re-link business on mount: fixes data loss after logout/login when the
+  // anonymous Convex user changes. syncUser migrates the business to the new
+  // user and creates one if it doesn't exist.
   useEffect(() => {
-    if (business === null) {
-      ensureBusiness().catch((err) => {
-        console.error("Failed to ensure MeltCookies business:", err);
+    if (admin && business === null) {
+      syncUser({ adminId: admin.adminId }).catch((err) => {
+        console.error("syncUser failed:", err);
       });
     }
-  }, [business, ensureBusiness]);
+  }, [admin, business, syncUser]);
 
   const handleSignOut = async () => {
     await signOut();
