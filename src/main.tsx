@@ -99,6 +99,19 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 function RouteSyncer() {
   const location = useLocation();
+
+  // Canonical domain redirect: ensure we always use www.meltcookies.com.br
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname === "meltcookies.com.br"
+    ) {
+      window.location.replace(
+        `https://www.meltcookies.com.br${window.location.pathname}${window.location.search}`,
+      );
+    }
+  }, []);
+
   useEffect(() => {
     window.parent.postMessage(
       { type: "iframe-route-change", path: location.pathname },
