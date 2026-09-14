@@ -1011,8 +1011,11 @@ function StampsView({ businessId }: { businessId: string }) {
     const list = customers ?? [];
     if (!customerSearch.trim()) return list;
     const term = customerSearch.toLowerCase().trim();
+    const digitsOnly = term.replace(/\D/g, "");
     return list.filter(
-      (c) => c.name.toLowerCase().includes(term) || (c.phone && c.phone.includes(term.replace(/\D/g, ""))),
+      (c) =>
+        c.name.toLowerCase().includes(term) ||
+        (digitsOnly.length > 0 && c.phone && c.phone.includes(digitsOnly)),
     );
   }, [customers, customerSearch]);
 
