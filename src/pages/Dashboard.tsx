@@ -68,7 +68,7 @@ export default function Dashboard() {
   // anonymous Convex user changes. syncUser migrates the business to the new
   // user and creates one if it doesn't exist.
   useEffect(() => {
-    if (admin && business === null) {
+    if (admin && (business === null || business === undefined)) {
       syncUser({ adminId: admin.adminId }).catch((err) => {
         console.error("syncUser failed:", err);
       });
@@ -80,10 +80,21 @@ export default function Dashboard() {
     window.location.href = "/auth";
   };
 
-  if (business === undefined || business === null) {
+  if (business === undefined) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground text-sm">Carregando...</div>
+      </main>
+    );
+  }
+
+  if (business === null) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="animate-pulse text-muted-foreground text-sm">Configurando sua conta...</div>
+          <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos.</p>
+        </div>
       </main>
     );
   }

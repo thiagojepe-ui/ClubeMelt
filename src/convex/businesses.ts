@@ -79,10 +79,16 @@ export const getByUser = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
 
-    return ctx.db
+    // 1) Business linked to the current Convex user
+    const own = await ctx.db
       .query("businesses")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
+    if (own) return own;
+
+    // 2) Fallback: single-business app — return any business so the admin
+    //    can always see the dashboard while syncUser re-links ownership.
+    return await ctx.db.query("businesses").first();
   },
 });
 
