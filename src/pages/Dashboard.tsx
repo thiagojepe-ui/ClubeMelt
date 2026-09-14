@@ -60,24 +60,57 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 export default function Dashboard() {
   const { signOut, admin } = useAuth();
   const [view, setView] = useState<DashboardView>("overview");
+  const [syncAttempt, setSyncAttempt] = useState(0);
+  const [syncError, setSyncError] = useState(false);
 
   const business = useQuery(api.businesses.getByUser);
   const syncUser = useMutation(api.admins.syncUser);
+  const ensureBusiness = useMutation(api.businesses.ensure);
 
   // Re-link business on mount: fixes data loss after logout/login when the
   // anonymous Convex user changes. syncUser migrates the business to the new
   // user and creates one if it doesn't exist.
   useEffect(() => {
-    if (admin && (business === null || business === undefined)) {
-      syncUser({ adminId: admin.adminId }).catch((err) => {
+    if (!admin) return;
+    if (business !== null && business !== undefined) return;
+
+    let cancelled = false;
+
+    const attemptSync = async () => {
+      try {
+        await syncUser({ adminId: admin.adminId });
+      } catch (err) {
         console.error("syncUser failed:", err);
-      });
-    }
-  }, [admin, business, syncUser]);
+        // Fallback: try ensureBusiness directly
+        try {
+          await ensureBusiness();
+        } catch (err2) {
+          console.error("ensureBusiness fallback failed:", err2);
+          if (!cancelled) setSyncError(true);
+          return;
+        }
+      }
+      // If business is still null after sync, retry once after a delay
+      if (!cancelled && (business === null || business === undefined) && syncAttempt < 3) {
+        const timer = setTimeout(() => {
+          if (!cancelled) setSyncAttempt((a) => a + 1);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    };
+
+    attemptSync();
+    return () => { cancelled = true; };
+  }, [admin, business, syncUser, ensureBusiness, syncAttempt]);
 
   const handleSignOut = async () => {
     await signOut();
     window.location.href = "/auth";
+  };
+
+  const handleRetry = () => {
+    setSyncError(false);
+    setSyncAttempt((a) => a + 1);
   };
 
   if (business === undefined) {
@@ -91,9 +124,27 @@ export default function Dashboard() {
   if (business === null) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-4">
           <div className="animate-pulse text-muted-foreground text-sm">Configurando sua conta...</div>
-          <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos.</p>
+          {!syncError ? (
+            <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos.</p>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-destructive">Erro ao configurar a conta.</p>
+              <button
+                onClick={handleRetry}
+                className="clay-button bg-primary text-primary-foreground px-6 py-2.5 text-sm font-semibold"
+              >
+                Tentar novamente
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="clay-button-secondary px-4 py-2 text-xs text-muted-foreground block mx-auto"
+              >
+                Sair e entrar novamente
+              </button>
+            </div>
+          )}
         </div>
       </main>
     );
