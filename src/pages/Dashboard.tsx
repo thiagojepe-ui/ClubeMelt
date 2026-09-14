@@ -954,6 +954,7 @@ function StampsView({ businessId }: { businessId: string }) {
   const [creating, setCreating] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [stampSearch, setStampSearch] = useState("");
 
   const filteredCustomers = useMemo(() => {
     const list = customers ?? [];
@@ -1076,8 +1077,35 @@ function StampsView({ businessId }: { businessId: string }) {
       {stampData && stampData.length > 0 && (
         <div className="mt-6">
           <h3 className="text-sm font-bold text-muted-foreground mb-3">Carimbos já gerados</h3>
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={stampSearch}
+              onChange={(e) => setStampSearch(e.target.value)}
+              placeholder="Buscar por nome do cliente..."
+              className="clay-input w-full pl-10 pr-4 py-3"
+            />
+          </div>
           <div className="space-y-2">
-            {stampData.map((entry) => {
+            {stampData
+              .filter((entry) => {
+                if (!stampSearch.trim()) return true;
+                const term = stampSearch.toLowerCase().trim();
+                return entry.customer.name.toLowerCase().includes(term);
+              })
+              .length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {stampSearch ? "Nenhum cliente encontrado com essa busca." : "Nenhum carimbo registrado ainda."}
+              </p>
+            )}
+            {stampData
+              .filter((entry) => {
+                if (!stampSearch.trim()) return true;
+                const term = stampSearch.toLowerCase().trim();
+                return entry.customer.name.toLowerCase().includes(term);
+              })
+              .map((entry) => {
               const hasCompleted = entry.cyclesCompleted > 0;
               const progress = entry.totalStamps > 0 ? (entry.currentProgress / entry.totalStamps) * 100 : 0;
 
