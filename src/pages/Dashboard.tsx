@@ -643,10 +643,11 @@ function CustomersView({ businessId }: { businessId: string }) {
     const list = allCustomers ?? [];
     if (!searchTerm.trim()) return list;
     const term = searchTerm.toLowerCase().trim();
+    const digitsOnly = term.replace(/\D/g, "");
     return list.filter(
       (c) =>
         c.name.toLowerCase().includes(term) ||
-        (c.phone && c.phone.includes(term.replace(/\D/g, ""))),
+        (digitsOnly.length > 0 && c.phone && c.phone.includes(digitsOnly)),
     );
   }, [allCustomers, searchTerm]);
 
@@ -825,8 +826,10 @@ function CustomersView({ businessId }: { businessId: string }) {
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredCustomers.map((customer) => (
-            <div key={customer._id} className="clay-card p-4">
+          {filteredCustomers.map((customer) => {
+            const isNew = Date.now() - customer.createdAt < 24 * 60 * 60 * 1000;
+            return (
+            <div key={customer._id} className={`clay-card p-4 ${isNew ? "ring-2 ring-[oklch(0.85_0.1_50)] bg-[oklch(0.97_0.04_50)]" : ""}`}>
               {editingId === customer._id ? (
                 <div className="space-y-3">
                   <h3 className="font-bold text-sm">Editar cliente</h3>
@@ -872,7 +875,14 @@ function CustomersView({ businessId }: { businessId: string }) {
                     {customer.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{customer.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm truncate">{customer.name}</p>
+                      {isNew && (
+                        <span className="clay-badge px-1.5 py-0.5 text-[9px] font-bold inline-flex items-center gap-0.5 bg-[oklch(0.88_0.12_50)] text-[oklch(0.35_0.12_50)]">
+                          NOVO
+                        </span>
+                      )}
+                    </div>
                     {customer.phone && (
                       <p className="text-xs text-muted-foreground">{customer.phone}</p>
                     )}
@@ -910,7 +920,8 @@ function CustomersView({ businessId }: { businessId: string }) {
                 </div>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </motion.div>
