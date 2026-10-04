@@ -42,15 +42,19 @@ function ClubeRedirect() {
 
 /**
  * "/" serves the customer club on clube.meltcookies.com.br (so typing the
- * bare subdomain lands on registration) and the admin dashboard everywhere
- * else — including admclube.meltcookies.com.br, whose root opens /dashboard.
+ * bare subdomain lands on registration) and the admin area everywhere else,
+ * rendered directly — the root no longer redirects to /dashboard.
  */
 function RootRoute() {
   const onClubDomain =
     typeof window !== "undefined" &&
     window.location.hostname === "clube.meltcookies.com.br";
   if (onClubDomain) return <ClubeRedirect />;
-  return <Navigate to="/dashboard" replace />;
+  return (
+    <RequireAuth>
+      <Dashboard />
+    </RequireAuth>
+  );
 }
 
 /** Hard guard so runtime errors never leave the preview as a blank page. */
@@ -213,7 +217,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/" element={<RootRoute />} />
             <Route
               path="/auth"
-              element={<AuthPage redirectAfterAuth="/dashboard" />}
+              element={<AuthPage redirectAfterAuth="/" />}
             />
             <Route
               path="/dashboard"
