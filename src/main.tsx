@@ -43,7 +43,7 @@ function ClubeRedirect() {
 /**
  * "/" serves the customer club on clube.meltcookies.com.br (so typing the
  * bare subdomain lands on registration) and the admin dashboard everywhere
- * else.
+ * else — including admclube.meltcookies.com.br, whose root opens /dashboard.
  */
 function RootRoute() {
   const onClubDomain =
@@ -113,33 +113,71 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 function RouteSyncer() {
   const location = useLocation();
 
-  // Domain routing:
-  // 1) The customer club now lives on clube.meltcookies.com.br — anyone
-  //    typing/pasting meltcookies.com.br/clube or www.meltcookies.com.br/clube
-  //    is sent straight to that subdomain (single hop, checked first so the
-  //    apex → www redirect below never intercepts /clube links).
-  // 2) Every other path on the apex still canonicalizes to www, preserving
-  //    the path and query string.
+  // Zone routing:
+  //   • admclube.meltcookies.com.br → admin area (/, /dashboard, /auth)
+  //   • clube.meltcookies.com.br → customer area (/clube, /register,
+  //     /customer, /batch, and the bare root)
+  // Legacy links on meltcookies.com.br / www.meltcookies.com.br are forwarded
+  // to the right zone in a single hop (checked before the apex → www
+  // fallback), and each subdomain sends back the other zone's routes.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const host = window.location.hostname;
     const path = window.location.pathname;
-    const isClubLink = path === "/clube" || path === "/clube/";
+    const search = window.location.search;
 
-    if (
-      isClubLink &&
-      (host === "meltcookies.com.br" || host === "www.meltcookies.com.br")
-    ) {
-      window.location.replace(
-        `https://clube.meltcookies.com.br/${window.location.search}`,
-      );
+    const isLegacy =
+      host === "meltcookies.com.br" || host === "www.meltcookies.com.br";
+    const isClubHost = host === "clube.meltcookies.com.br";
+    const isAdminHost = host === "admclube.meltcookies.com.br";
+
+    const isRoot = path === "/" || path === "";
+    const isAdminPath =
+      path === "/dashboard" ||
+      path.startsWith("/dashboard/") ||
+      path === "/auth" ||
+      path.startsWith("/auth/");
+    const isClubPath =
+      path === "/clube" ||
+      path === "/clube/" ||
+      path.startsWith("/register/") ||
+      path.startsWith("/customer/") ||
+      path.startsWith("/batch/");
+
+    // The bare club subdomain IS the club, so /clube collapses to its root.
+    const toClub = (p: string, s: string) =>
+      p === "/clube" || p === "/clube/"
+        ? `https://clube.meltcookies.com.br/${s}`
+        : `https://clube.meltcookies.com.br${p}${s}`;
+    const toAdmin = (p: string, s: string) =>
+      `https://admclube.meltcookies.com.br${p}${s}`;
+
+    // Legacy domain: the bare/www domain used to be the admin entry, so the
+    // root and the admin routes now go to the admin subdomain; customer
+    // routes go to the club subdomain.
+    if (isLegacy) {
+      if (isRoot || isAdminPath) {
+        window.location.replace(toAdmin(path, search));
+      } else if (isClubPath) {
+        window.location.replace(toClub(path, search));
+      } else if (host === "meltcookies.com.br") {
+        // Apex → www fallback for anything unclassified (path preserved).
+        window.location.replace(
+          `https://www.meltcookies.com.br${path}${search}`,
+        );
+      }
       return;
     }
 
-    if (host === "meltcookies.com.br") {
-      window.location.replace(
-        `https://www.meltcookies.com.br${path}${window.location.search}`,
-      );
+    // Club subdomain hosts only the customer area.
+    if (isClubHost && isAdminPath) {
+      window.location.replace(toAdmin(path, search));
+      return;
+    }
+
+    // Admin subdomain hosts only the admin area.
+    if (isAdminHost && isClubPath) {
+      window.location.replace(toClub(path, search));
     }
   }, []);
 
