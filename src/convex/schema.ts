@@ -65,6 +65,13 @@ const schema = defineSchema(
       businessId: v.id("businesses"),
       name: v.string(),
       phone: v.optional(v.string()),
+      // Espelho do cadastro do sistema de Delivery (todos opcionais)
+      address: v.optional(v.string()),
+      addressNumber: v.optional(v.string()),
+      complement: v.optional(v.string()),
+      neighborhood: v.optional(v.string()),
+      zipCode: v.optional(v.string()),
+      notes: v.optional(v.string()),
       createdAt: v.number(),
     })
       .index("by_business", ["businessId"])
