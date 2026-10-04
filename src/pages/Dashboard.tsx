@@ -688,25 +688,11 @@ function CustomersView({ businessId }: { businessId: string }) {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [adding, setAdding] = useState(false);
-  const [copiedReg, setCopiedReg] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-
-  const registerUrl = CLIENT_CLUB_URL;
-
-  const handleCopyRegister = async () => {
-    const ok = await copyTextToClipboard(registerUrl);
-    if (ok) {
-      setCopiedReg(true);
-      toast.success("Link de cadastro copiado!");
-      setTimeout(() => setCopiedReg(false), 2000);
-    } else {
-      toast.error("Erro ao copiar link");
-    }
-  };
 
   // Local search filter
   const filteredCustomers = useMemo(() => {
@@ -803,25 +789,6 @@ function CustomersView({ businessId }: { businessId: string }) {
           <UserPlus className="w-4 h-4" />
           Novo cliente
         </button>
-      </div>
-
-      {/* Registration link */}
-      <div className="clay-card p-5 mb-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-          Cliente se cadastra sozinho
-        </p>
-        <p className="text-xs text-muted-foreground mb-3">
-          Este é o único link do cliente: cadastro, login, selos e prêmios.
-        </p>
-        <div className="flex items-center gap-2 bg-secondary/50 rounded-xl p-3">
-          <p className="text-[11px] text-muted-foreground break-all flex-1 font-mono leading-relaxed">{registerUrl}</p>
-          <button
-            onClick={handleCopyRegister}
-            className="clay-button-secondary px-3 py-1.5 text-xs font-semibold flex items-center gap-1 shrink-0"
-          >
-            {copiedReg ? <><Check className="w-3 h-3" /> Copiado</> : <><Copy className="w-3 h-3" /> Copiar</>}
-          </button>
-        </div>
       </div>
 
       {/* Search */}
@@ -957,13 +924,9 @@ function CustomersView({ businessId }: { businessId: string }) {
                       <p className="text-xs text-muted-foreground">{customer.phone}</p>
                     )}
                   </div>
-                  {confirmDeleteId === customer._id ? (
+                  {confirmDeleteId === customer._id && (
                     <span className="text-[11px] text-destructive font-semibold shrink-0">
                       Clique de novo para confirmar
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">
-                      Usa o link único acima
                     </span>
                   )}
                   <div className="flex items-center gap-1.5 shrink-0">
