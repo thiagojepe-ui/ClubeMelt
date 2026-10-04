@@ -28,6 +28,14 @@ import { toast } from "sonner";
 
 type DashboardView = "overview" | "setup" | "cards" | "customers" | "stamps" | "prizes";
 
+/**
+ * Canonical public link for customers (cadastro, login, selos e prêmios).
+ * Always points to the production www domain, no matter where the dashboard
+ * is opened (preview, apex domain, etc.), so the copied link is always
+ * https://www.meltcookies.com.br/clube
+ */
+const CLIENT_CLUB_URL = "https://www.meltcookies.com.br/clube";
+
 /* Shared clipboard helper — uses execCommand fallback for iframe contexts */
 async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
@@ -687,7 +695,7 @@ function CustomersView({ businessId }: { businessId: string }) {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const registerUrl = `${window.location.origin}/clube`;
+  const registerUrl = CLIENT_CLUB_URL;
 
   const handleCopyRegister = async () => {
     const ok = await copyTextToClipboard(registerUrl);
@@ -1028,8 +1036,7 @@ function StampsView({ businessId }: { businessId: string }) {
         customerId: selectedCustomer as any,
         count: stampCount,
       });
-      const url = `${window.location.origin}/clube`;
-      setGeneratedLink(url);
+      setGeneratedLink(CLIENT_CLUB_URL);
       toast.success(`${stampCount} carimbo(s) adicionado(s) ao cliente!`);
     } catch (err: any) {
       toast.error(err?.data?.message || "Erro ao gerar link");
