@@ -40,6 +40,19 @@ function ClubeRedirect() {
   return <Navigate to={`/register/${business._id}`} replace />;
 }
 
+/**
+ * "/" serves the customer club on clube.meltcookies.com.br (so typing the
+ * bare subdomain lands on registration) and the admin dashboard everywhere
+ * else.
+ */
+function RootRoute() {
+  const onClubDomain =
+    typeof window !== "undefined" &&
+    window.location.hostname === "clube.meltcookies.com.br";
+  if (onClubDomain) return <ClubeRedirect />;
+  return <Navigate to="/dashboard" replace />;
+}
+
 /** Hard guard so runtime errors never leave the preview as a blank page. */
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -100,14 +113,32 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 function RouteSyncer() {
   const location = useLocation();
 
-  // Canonical domain redirect: ensure we always use www.meltcookies.com.br
+  // Domain routing:
+  // 1) The customer club now lives on clube.meltcookies.com.br — anyone
+  //    typing/pasting meltcookies.com.br/clube or www.meltcookies.com.br/clube
+  //    is sent straight to that subdomain (single hop, checked first so the
+  //    apex → www redirect below never intercepts /clube links).
+  // 2) Every other path on the apex still canonicalizes to www, preserving
+  //    the path and query string.
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname;
+    const path = window.location.pathname;
+    const isClubLink = path === "/clube" || path === "/clube/";
+
     if (
-      typeof window !== "undefined" &&
-      window.location.hostname === "meltcookies.com.br"
+      isClubLink &&
+      (host === "meltcookies.com.br" || host === "www.meltcookies.com.br")
     ) {
       window.location.replace(
-        `https://www.meltcookies.com.br${window.location.pathname}${window.location.search}`,
+        `https://clube.meltcookies.com.br/${window.location.search}`,
+      );
+      return;
+    }
+
+    if (host === "meltcookies.com.br") {
+      window.location.replace(
+        `https://www.meltcookies.com.br${path}${window.location.search}`,
       );
     }
   }, []);
@@ -141,7 +172,7 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <RouteSyncer />
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<RootRoute />} />
             <Route
               path="/auth"
               element={<AuthPage redirectAfterAuth="/dashboard" />}
